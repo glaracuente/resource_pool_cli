@@ -3,8 +3,11 @@ Insight DevOps project
 
 
 ./resource_pool list
+
 ./resource_pool create [NAME] -c <CORES> -m <Memory>
+  
 ./resource_pool resize [NAME] -c <CORES> -m <Memory>
+  
 ./resource_pool destroy [NAME]
 
 Terraform is used to spin up EC2 instances running vanilla Ubuntu images in a single VPC
