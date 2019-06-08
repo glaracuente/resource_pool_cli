@@ -1,0 +1,70 @@
+#!/usr/local/bin/python3
+
+import click
+import random
+import string
+
+
+@click.group(context_settings={"help_option_names": ["-h", "--help"]})
+def cli():
+    pass
+
+
+@cli.command()
+def list():
+    click.echo("list")
+
+
+@cli.command()
+@click.option("--cores", "-c", type=int)
+@click.option("--memory", "-m", type=int)
+def create(cores, memory):
+    if not cores or not memory:
+        click.echo("You must specify cores and memory")
+    else:
+        # validate_resource(cores)
+        # validate_resource(memory)
+        click.echo("Creating RP with {} cores and {}GB".format(cores, memory))
+
+
+@cli.command()
+@click.option("--cores", "-c", type=int)
+@click.option("--memory", "-m", type=int)
+def resize(cores, memory):
+    if not cores and not memory:
+        click.echo("You must specify cores or memory")
+    else:
+        click.echo("Resizing RP with {} cores and {}GB".format(cores, memory))
+
+
+@cli.command()
+@click.argument("rp_name")
+def destroy(rp_name):
+    click.echo(
+        "You are attempting to destory the {} resource pool.\nThis cannot be undone".format(
+            rp_name
+        )
+    )
+    validation_string = randomString(5)
+    click.echo(
+        "To confirm this action, please type out the following string: {}".format(
+            validation_string
+        )
+    )
+
+    user_validation_string = input("Enter string : ")
+
+    if user_validation_string == validation_string:
+        click.echo("DESTROYING the {} resource pool...".format(rp_name))
+    else:
+        click.echo("Your input did not match the validation string")
+
+
+def randomString(stringLength=10):
+    """Generate a random string of fixed length """
+    letters = string.ascii_lowercase
+    return "".join(random.choice(letters) for i in range(stringLength))
+
+
+if __name__ == "__main__":
+    cli()
