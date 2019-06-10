@@ -127,4 +127,4 @@ dmypy.json
 vendor/
 .test-data
 
-.DS_Store
+*.DS_Store
