@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/bin/python3
 
 import click
 import random
@@ -22,8 +22,8 @@ def create(cores, memory):
     if not cores or not memory:
         click.echo("You must specify cores and memory")
     else:
-        # validate_resource(cores)
-        # validate_resource(memory)
+        # look at list of fleet hosts and verify that there are at least 3 available
+        # if there are, then grab 3 and move them from the list into a new dir structure for this new pool
         click.echo("Creating RP with {} cores and {}GB".format(cores, memory))
 
 

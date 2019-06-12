@@ -1,6 +1,6 @@
 FROM alpine:3.7
 
-ENV ANSIBLE_VERSION 2.5.0
+ENV ANSIBLE_VERSION 2.8.0
 
 ENV BUILD_PACKAGES \
   bash \
@@ -27,7 +27,6 @@ RUN set -x && \
     \
     echo "==> Adding build-dependencies..."  && \
     apk --update add --virtual build-dependencies \
-      vim \
       gcc \
       musl-dev \
       libffi-dev \
@@ -52,7 +51,14 @@ RUN set -x && \
     echo "==> Adding hosts for convenience..."  && \
     mkdir -p /etc/ansible /ansible && \
     echo "[local]" >> /etc/ansible/hosts && \
-    echo "localhost" >> /etc/ansible/hosts
+    echo "localhost" >> /etc/ansible/hosts \
+    \
+    echo "==> Adding resource_pool cli..."  && \
+    apk add python3 && \
+    pip3 install click && \
+    apk add wget && \
+    apk add vim && \
+    wget https://raw.githubusercontent.com/glaracuente/resourcer/develop/resource_pool_cli/resource_pool -O /var/tmp/resource_pool
 
 ENV ANSIBLE_GATHERING smart
 ENV ANSIBLE_HOST_KEY_CHECKING false
@@ -66,3 +72,5 @@ ENV ANSIBLE_LIBRARY /ansible/library
 WORKDIR /ansible/playbooks
 
 #ENTRYPOINT ["ansible-playbook"]
+
+
