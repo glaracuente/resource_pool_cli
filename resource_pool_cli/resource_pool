@@ -3,6 +3,14 @@
 import click
 import random
 import string
+import sys
+import os
+import subprocess
+import json
+
+
+ANSIBLE_DIR = "/etc/ansible"
+FLEET_LIST = "{}/hosts".format(ANSIBLE_DIR)
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -16,14 +24,59 @@ def list():
 
 
 @cli.command()
+@click.argument("rp_name")
+def show(rp_name):
+    pool_core_count = 0
+    pool_mem_amount = 0
+    rp_dir = "{}/{}".format(ANSIBLE_DIR, rp_name)
+
+    cmd = "ansible k8s -m gather_facts --tree {}".format(rp_dir)
+    process = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out = process.communicate()[0]
+
+
+
+    for file in os.listdir(rp_dir):
+        with open("{}/{}".format(rp_dir, file), 'r') as myfile:
+            data = myfile.read()
+        facts = json.loads(data)
+        this_server_core_count = facts['ansible_facts']['ansible_processor_cores']
+        this_server_mem_amount = facts['ansible_facts']['ansible_memtotal_mb']
+        pool_core_count = pool_core_count + this_server_core_count
+        pool_mem_amount = pool_mem_amount + this_server_mem_amount
+        
+    click.echo("{} free cores in {} pool".format(pool_core_count, rp_name))
+    click.echo("{} free MB of ram in {} pool".format(pool_mem_amount, rp_name))
+
+
+@cli.command()
+@click.argument("rp_name")
 @click.option("--cores", "-c", type=int)
 @click.option("--memory", "-m", type=int)
-def create(cores, memory):
+def create(rp_name, cores, memory):
     if not cores or not memory:
         click.echo("You must specify cores and memory")
     else:
-        # look at list of fleet hosts and verify that there are at least 3 available
-        # if there are, then grab 3 and move them from the list into a new dir structure for this new pool
+        lines_in_fleet_file = len(open(FLEET_LIST).readlines())
+        if lines_in_fleet_file < 4:
+            click.echo("There are not enough servers available to create a new resource pool.")
+            sys.exit()
+            
+        # This whole part will just end up calling show()
+        #FOR FILE IN DIR ()
+        thefile = "/tmp/facts/172.31.90.199" #This should be list of every host file
+        with open(thefile, 'r') as myfile:
+            data=myfile.read()
+        facts = json.loads(data)
+        core_count_fleet = facts['ansible_facts']['ansible_processor_cores']
+        mem_amount_fleet = facts['ansible_facts']['ansible_memtotal_mb']
+
+        if core_count_fleet < cores or mem_amount_fleet < memory:
+            click.echo("There are not enough resources available to create a new resource pool.")
+            sys.exit()
+
+        #run k8s playbook on this host set 
+
         click.echo("Creating RP with {} cores and {}GB".format(cores, memory))
 
 
