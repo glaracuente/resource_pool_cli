@@ -19,10 +19,6 @@ ENV BUILD_PACKAGES \
   py-yaml \
   ca-certificates
 
-# If installing ansible@testing
-#RUN \
-#	echo "@testing http://nl.alpinelinux.org/alpine/edge/testing" >> #/etc/apk/repositories
-
 RUN set -x && \
     \
     echo "==> Adding build-dependencies..."  && \
@@ -71,6 +67,6 @@ ENV ANSIBLE_LIBRARY /ansible/library
 
 WORKDIR /ansible/playbooks
 
-#ENTRYPOINT ["ansible-playbook"]
-
+RUN chmod 755 /var/tmp/resource_pool
+ENTRYPOINT ["/var/tmp/resource_pool"]
 
