@@ -20,7 +20,9 @@ resource "aws_instance" "captain" {
               sudo apt-get update
               sudo apt-get install -y docker-ce docker-ce-cli containerd.io
               sudo curl -X GET https://raw.githubusercontent.com/glaracuente/resourcer/develop/ansible/Dockerfile > /var/tmp/Dockerfile
-              sudo docker build /var/tmp/ -t ansible
+              sudo docker build /var/tmp/ -t resource_pool
+              mkdir  /var/tmp/keys
+              mkdir  /var/tmp/ansible
               EOF
 
   tags = {

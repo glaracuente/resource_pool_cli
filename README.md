@@ -7,6 +7,14 @@ Insight DevOps project
 ./resource_pool resize [NAME] -c <CORES> -m <Memory>
 ./resource_pool destroy [NAME]
 
+REAL EXAMPLE:
+
+root@ip-172-31-87-26:~# docker run -it -v /var/tmp/ansible/:/etc/ansible -v /var/tmp/keys/:/root/.ssh/ resource_pool show frontend
+
+4 free cores in frontend pool
+7900 free MB of ram in frontend pool
+
+
 Terraform is used to spin up EC2 instances running vanilla Ubuntu images in a single VPC
 This will represent physical servers within the same VLAN in a Data Center. 
 

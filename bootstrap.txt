@@ -1,0 +1,17 @@
+cd /terraform
+terraform apply -auto-approve
+ssh into "captain" ec2 instance and follow:
+
+
+
+docker run -it --entrypoint="" -v /var/tmp/ansible/:/etc/ansible -v /var/tmp/keys/:/root/.ssh/ resource_pool bash
+[inside container]. ssh-keygen
+[inside container] chmod 400 ~/.ssh/id_rsa*; exit
+Copy /var/tmp/keys/id_rsa.pub to /root/authorized_keys on all resoure_server ec2 instances 
+
+Puts [k8s] and private IPs of ec2 instances in /var/tmp/ansible/hosts file
+mkdir /var/tmp/ansible/frontend
+docker run -it -v /var/tmp/ansible/:/etc/ansible -v /var/tmp/keys/:/root/.ssh/ resource_pool show frontend
+
+
+
