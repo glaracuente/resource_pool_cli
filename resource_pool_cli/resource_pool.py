@@ -24,8 +24,6 @@ def init_pool(rp_name):
 
 
 def get_master(hosts_file):
-    master_server = "unknown"
-
     with open(hosts_file, "r") as stream:
         try:
             master_server_pair = yaml.safe_load(stream)["all"]["children"]["master"][
@@ -34,7 +32,9 @@ def get_master(hosts_file):
             for key in master_server_pair:
                 master_server = key
         except yaml.YAMLError as exc:
-            print(exc)
+            click.echo(exc)
+        except KeyError as key_exc:
+            return "None"
 
     return master_server
 
@@ -113,16 +113,17 @@ def show_pool_info(rp_name):
     pool_mem_amount = 0
 
     specs = get_specs(rp_name)
-    print(specs)
+    
+    hosts_file = "{}/{}/hosts".format(ANSIBLE_DIR, rp_name)
+    master_server = get_master(hosts_file)
 
     for server in specs:
+        if server == master_server:
+            continue
         this_server_core_count = specs[server]["cores"]
         this_server_mem_amount = specs[server]["mem"]
         pool_core_count = pool_core_count + this_server_core_count
         pool_mem_amount = pool_mem_amount + this_server_mem_amount
-
-    hosts_file = "{}/{}/hosts".format(ANSIBLE_DIR, rp_name)
-    master_server = get_master(hosts_file)
 
     output_table = PrettyTable(["Pool Name", rp_name])
     output_table.add_row(["Cluster Master", master_server])
@@ -138,13 +139,10 @@ def cli():
 
 @cli.command()
 def list():
-    show_specs()
-    """
     for file in os.listdir(ANSIBLE_DIR):
-        if not os.path.isdir(file):
+        if not os.path.isdir(file) or file == "pool_template":
             continue
         show_pool_info(file)
-    """
 
 
 @cli.command()
