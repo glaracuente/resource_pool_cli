@@ -1,0 +1,8 @@
+---
+all:
+  hosts:
+  children:
+    master:
+      hosts:
+    workers:
+      hosts:

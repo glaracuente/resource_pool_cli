@@ -11,10 +11,16 @@ import time
 import fileinput
 from prettytable import PrettyTable
 import yaml
+import shutil
 
 
 ANSIBLE_DIR = "/etc/ansible"
-fleet_hosts_yaml_file = "{}/fleet/hosts".format(ANSIBLE_DIR)
+TEMPLATE_DIR = "{}/pool_template".format(ANSIBLE_DIR)
+FLEET_HOSTS_YAML_FILE = "{}/fleet/hosts".format(ANSIBLE_DIR)
+
+
+def init_pool(rp_name):
+    shutil.copytree(TEMPLATE_DIR, "{}/{}".format(ANSIBLE_DIR, rp_name))
 
 
 def get_master(hosts_file):
@@ -35,7 +41,7 @@ def get_master(hosts_file):
 
 def allocate_resources(hosts_file, masters_list, worker_list):
     # removing servers from fleet list
-    with open(fleet_hosts_yaml_file, "r") as stream:
+    with open(FLEET_HOSTS_YAML_FILE, "r") as stream:
         try:
             hosts = yaml.safe_load(stream)
             servers = masters_list + worker_list
@@ -45,7 +51,7 @@ def allocate_resources(hosts_file, masters_list, worker_list):
         except yaml.YAMLError as exc:
             print(exc)
 
-    with open(fleet_hosts_yaml_file, "w") as f:
+    with open(FLEET_HOSTS_YAML_FILE, "w") as f:
         yaml.dump(updated_fleet_hosts_yaml, f)
 
     # adding servers to resource server list
@@ -190,13 +196,15 @@ def create(rp_name, cores, memory):
         print(masters_list)
         print(workers_list)
 
-        click.echo("Creating RP with {} cores and {}GB of memory".format(cores, memory))
+        click.echo("Creating RP with {} cores and {}GB of memory...".format(cores, memory))
 
-
-'''
+    init_pool(rp_name)
     hosts_file = "{}/{}/hosts".format(ANSIBLE_DIR, rp_name)
+    allocate_resources(hosts_file, masters_list, workers_list)
+
     master_server = get_master(hosts_file)
 
+'''
     cmd = "ansible-playbook -i {} /etc/ansible/k8s".format(hosts_file)
     process = subprocess.Popen(
         cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
