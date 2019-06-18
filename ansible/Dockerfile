@@ -52,6 +52,7 @@ RUN set -x && \
     echo "==> Adding resource_pool cli..."  && \
     apk add python3 && \
     pip3 install click && \
+    pip3 install  prettytable && \
     apk add wget && \
     apk add vim && \
     wget https://raw.githubusercontent.com/glaracuente/resourcer/develop/resource_pool_cli/resource_pool -O /var/tmp/resource_pool
