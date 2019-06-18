@@ -51,7 +51,6 @@ def allocate_resources(hosts_file, masters_list, worker_list):
         except yaml.YAMLError as exc:
             click.echo(exc)
 
-
     with open(FLEET_HOSTS_YAML_FILE, "w") as f:
         yaml.dump(updated_fleet_hosts_yaml, f)
 
