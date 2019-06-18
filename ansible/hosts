@@ -1,0 +1,6 @@
+[master]
+aws-private-ip
+
+[workers]
+aws-private-ip
+aws-private-ip

@@ -1,0 +1,39 @@
+---
+- hosts: all
+  tasks:
+    - name: apt-get update
+      apt:
+        update_cache: yes
+    - name: apt-get install pkgs
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - apt-transport-https
+        - curl
+    - name: curl from google
+      shell: curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+    - name: add kube repo
+      shell: echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
+    - name: apt-get update
+      shell:  apt-get update
+    - name: install kubelets
+      shell:  apt-get install -y kubelet kubeadm kubectl
+    - name: apk-mark hold
+      shell: apt-mark hold kubelet kubeadm kubectl
+    - name: daemon reload
+      shell: systemctl daemon-reload
+    - name: restart kubelet
+      shell: systemctl restart kubelet
+
+- hosts: master
+  tasks:
+    - name: kubeadm init
+      shell: kubeadm init --pod-network-cidr=10.244.0.0/16
+    - name: flannel
+      shell: export KUBECONFIG=/etc/kubernetes/admin.conf; sysctl net.bridge.bridge-nf-call-iptables=1; kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/62e44c867a2846fefb68bd5f178daf4da3095ccb/Documentation/kube-flannel.yml
+    - name: token creation
+      shell: kubeadm token create --print-join-command
+      register: results
+    - debug:
+        var: results.stdout
