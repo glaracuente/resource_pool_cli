@@ -43,11 +43,11 @@ def allocate_resources(hosts_file, masters_list, worker_list):
     # removing servers from fleet list
     with open(FLEET_HOSTS_YAML_FILE, "r") as stream:
         try:
-            hosts = yaml.safe_load(stream)
+            fleet_hosts_yaml = yaml.safe_load(stream)
             servers = masters_list + worker_list
             for server in servers:
-                del hosts["all"]["hosts"][server]
-            updated_fleet_hosts_yaml = hosts
+                del fleet_hosts_yaml["all"]["hosts"][server]
+            updated_fleet_hosts_yaml = fleet_hosts_yaml
         except yaml.YAMLError as exc:
             print(exc)
 
@@ -58,17 +58,17 @@ def allocate_resources(hosts_file, masters_list, worker_list):
     pool_hosts_yaml_file = hosts_file
     with open(pool_hosts_yaml_file, "r") as stream:
         try:
-            hosts = yaml.safe_load(stream)
+            pool_hosts_yaml = yaml.safe_load(stream)
             temp_workers_dict = {}
             for worker in worker_list:
                 temp_workers_dict[worker] = None
-            hosts['all']['children']['workers']['hosts'] = temp_workers_dict
+            pool_hosts_yaml['all']['children']['workers']['hosts'] = temp_workers_dict
 
             temp_masters_dict = {}
             for master in masters_list:
                 temp_masters_dict[master] = None
-            hosts['all']['children']['master']['hosts'] = temp_masters_dict
-            updated_pool_hosts_yaml = hosts
+            pool_hosts_yaml['all']['children']['master']['hosts'] = temp_masters_dict
+            updated_pool_hosts_yaml = pool_hosts_yaml
         except yaml.YAMLError as exc:
             print(exc)
 
@@ -102,7 +102,7 @@ def get_specs(rp_name):
 
         this_server_core_count = facts["ansible_facts"]["ansible_processor_cores"]
         this_server_mem_amount = facts["ansible_facts"]["ansible_memtotal_mb"] / 1024.0
-        specs[file] = {"cores": this_server_core_count, "mem": this_server_mem_amount}
+        specs[file] = {"cores": this_server_core_count, "mem": round(this_server_mem_amount)}
         os.remove("{}/{}".format(rp_dir, file))
 
     return specs
@@ -113,6 +113,7 @@ def show_pool_info(rp_name):
     pool_mem_amount = 0
 
     specs = get_specs(rp_name)
+    print(specs)
 
     for server in specs:
         this_server_core_count = specs[server]["cores"]
@@ -159,44 +160,49 @@ def show(rp_name):
 def create(rp_name, cores, memory):
     if not cores or not memory:
         click.echo("You must specify cores and memory")
-    else:
-        fleet_specs = get_specs("fleet")
+        sys.exit()
 
-        total_cores = 0
-        total_memory = 0
-        masters_list = []
-        workers_list = []
+    click.echo("Analyzing hardware inventory...")
+    fleet_specs = get_specs("fleet")
 
-        highest_core_count = 0
-        for server in fleet_specs:
+    total_cores = 0
+    total_memory = 0
+    masters_list = []
+    workers_list = []
+
+    highest_core_count = 0
+    for server in fleet_specs:
+        this_server_cores = fleet_specs[server]['cores']
+        if this_server_cores > highest_core_count:
+            highest_core_count = this_server_cores
+            masters_list.clear()
+            masters_list.append(server)
+
+    for server in fleet_specs:
+        if server in masters_list:
+            continue
+        if total_cores < cores or total_memory < memory:
             this_server_cores = fleet_specs[server]['cores']
-            if this_server_cores > highest_core_count:
-                highest_core_count = this_server_cores
-                masters_list.clear()
-                masters_list.append(server)
+            total_cores = total_cores + this_server_cores
+            this_server_memory = fleet_specs[server]['mem']
+            total_memory = total_memory + this_server_memory
+            workers_list.append(server)
+    
+    resources_fulfilled = True
 
-        for server in fleet_specs:
-            if server in masters_list:
-                continue
-            if total_cores < cores:
-                this_server_cores = fleet_specs[server]['cores']
-                this_server_memory = fleet_specs[server]['mem']
-                total_cores = total_cores + this_server_cores
-                total_memory = total_memory + this_server_memory
-                workers_list.append(server)
-        
-        if total_cores < cores:
-            click.echo("There are not enough cores available to create a new resource pool.")
-            click.echo("Total cores available: {}".format(total_cores))
-            sys.exit()
-        #if total_memory < memory:
-            #click.echo("There is not enough memory available to create a new resource pool.")
-            #click.echo("Total memory available: {}".format(total_memory))
-            #sys.exit()
-        print(masters_list)
-        print(workers_list)
+    if total_cores < cores:
+        click.echo("There are not enough cores available to create a new resource pool.")
+        click.echo("Total cores available: {}".format(total_cores))
+        resources_fulfilled = False
+    if total_memory < memory:
+        click.echo("There is not enough memory available to create a new resource pool.")
+        click.echo("Total memory available: {} GB".format(total_memory))
+        resources_fulfilled = False
 
-        click.echo("Creating RP with {} cores and {}GB of memory...".format(cores, memory))
+    if not resources_fulfilled:
+        sys.exit()
+
+    click.echo("Creating RP with {} cores and {}GB of memory...".format(cores, memory))
 
     init_pool(rp_name)
     hosts_file = "{}/{}/hosts".format(ANSIBLE_DIR, rp_name)
@@ -204,7 +210,7 @@ def create(rp_name, cores, memory):
 
     master_server = get_master(hosts_file)
 
-'''
+    click.echo("Initializing master server...")
     cmd = "ansible-playbook -i {} /etc/ansible/k8s".format(hosts_file)
     process = subprocess.Popen(
         cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -232,15 +238,15 @@ def create(rp_name, cores, memory):
                 end="",
             )
 
+    click.echo("waiting for master to be ready...")
+    time.sleep(60)
+    click.echo("Joining workers to the master...")
+    
     cmd = "ansible-playbook {} -i {}".format(join_file, hosts_file)
-    click.echo("waiting for master to be ready...sleeping 40 seconds")
-    time.sleep(40)
-    click.echo("done sleeping")
     process = subprocess.Popen(
         cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     join_output = str(process.communicate()[0])
-'''
 
 @cli.command()
 @click.option("--cores", "-c", type=int)
