@@ -1,8 +1,0 @@
----
-- hosts: workers
-  tasks:
-    - name: kubeadm join
-      shell: kubeadm join MASTERIP:6443 CREDS
-      register: results
-    - debug:
-        var: results.stdout

@@ -9,8 +9,25 @@
         name: "{{ packages }}"
       vars:
         packages:
+        - python
         - apt-transport-https
         - curl
+        - ca-certificates
+        - gnupg-agent
+        - software-properties-common
+    - shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - 
+    - shell: add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"              
+    - name: apt-get update
+      apt:
+        update_cache: yes         
+    - name: apt-get install pkgs
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
     - name: curl from google
       shell: curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
     - name: add kube repo
