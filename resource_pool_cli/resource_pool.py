@@ -49,7 +49,8 @@ def allocate_resources(hosts_file, masters_list, worker_list):
                 del fleet_hosts_yaml["all"]["hosts"][server]
             updated_fleet_hosts_yaml = fleet_hosts_yaml
         except yaml.YAMLError as exc:
-            print(exc)
+            click.echo(exc)
+
 
     with open(FLEET_HOSTS_YAML_FILE, "w") as f:
         yaml.dump(updated_fleet_hosts_yaml, f)
@@ -70,11 +71,50 @@ def allocate_resources(hosts_file, masters_list, worker_list):
             pool_hosts_yaml['all']['children']['master']['hosts'] = temp_masters_dict
             updated_pool_hosts_yaml = pool_hosts_yaml
         except yaml.YAMLError as exc:
-            print(exc)
+            click.echo(exc)
 
     with open(pool_hosts_yaml_file, "w") as f:
         yaml.dump(updated_pool_hosts_yaml, f)
 
+
+def repurpose_resources(hosts_file):
+    # removing servers from pool list
+    pool_hosts_yaml_file = hosts_file
+    returning_servers = []
+    with open(pool_hosts_yaml_file, "r") as stream:
+        try:
+            pool_hosts_yaml = yaml.safe_load(stream)
+            workers = pool_hosts_yaml['all']['children']['workers']['hosts']
+            for worker in workers:
+                returning_servers.append(worker)
+            masters = pool_hosts_yaml['all']['children']['master']['hosts']
+            for master in masters:
+                returning_servers.append(master)
+        except yaml.YAMLError as exc:
+            click.echo(exc)
+    
+    # adding servers to resource fleet list
+    full_server_list = []
+    with open(FLEET_HOSTS_YAML_FILE, "r") as stream:
+        try:
+            fleet_hosts_yaml = yaml.safe_load(stream)
+            temp_servers_dict = {}
+
+            current_fleet_servers = fleet_hosts_yaml["all"]["hosts"]
+            for server in current_fleet_servers:
+                temp_servers_dict[server] = None
+
+            for server in returning_servers:
+                temp_servers_dict[server] = None
+
+            fleet_hosts_yaml["all"]["hosts"] = temp_servers_dict
+            updated_fleet_hosts_yaml = fleet_hosts_yaml
+        except yaml.YAMLError as exc:
+            click.echo(exc)
+
+    with open(FLEET_HOSTS_YAML_FILE, "w") as f:
+        yaml.dump(updated_fleet_hosts_yaml, f)
+ 
 
 def get_specs(rp_name):
     rp_dir = "{}/{}".format(ANSIBLE_DIR, rp_name)
@@ -237,7 +277,7 @@ def create(rp_name, cores, memory):
             )
 
     click.echo("waiting for master to be ready...")
-    time.sleep(60)
+    time.sleep(35)
     click.echo("Joining workers to the master...")
     
     cmd = "ansible-playbook {} -i {}".format(join_file, hosts_file)
@@ -275,12 +315,17 @@ def destroy(rp_name):
 
     if user_validation_string == validation_string:
         hosts_file = "{}/{}/hosts".format(ANSIBLE_DIR, rp_name)
+        click.echo("Destroying cluster...")
         cmd = "ansible-playbook /etc/ansible/destroy -i {}".format(hosts_file)
         process = subprocess.Popen(
             cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         destroy_output = str(process.communicate()[0])
-        print(destroy_output)
+
+        click.echo("Returning servers back to fleet...")
+        repurpose_resources(hosts_file)
+        click.echo("Cleaning up files...")
+        shutil.rmtree("{}/{}".format(ANSIBLE_DIR, rp_name))
     else:
         click.echo("Your input did not match the validation string")
 
