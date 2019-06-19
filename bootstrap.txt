@@ -9,9 +9,18 @@ docker run -it --entrypoint="" -v /var/tmp/ansible/:/etc/ansible -v /var/tmp/key
 [inside container] chmod 400 ~/.ssh/id_rsa*; exit
 Copy /var/tmp/keys/id_rsa.pub to /root/authorized_keys on all resoure_server ec2 instances 
 
-Puts [k8s] and private IPs of ec2 instances in /var/tmp/ansible/hosts file
-mkdir /var/tmp/ansible/frontend
-docker run -it -v /var/tmp/ansible/:/etc/ansible -v /var/tmp/keys/:/root/.ssh/ resource_pool show frontend
+Get ansible dir as it is in the git repo (need a better way to do this, git pull maybe)
+Puts [k8s] and private IPs of ec2 instances in /var/tmp/ansible/fleet/hosts file (need better way for this also...use aws cli parsing)
 
+docker run -it -v /var/tmp/ansible/:/etc/ansible -v /var/tmp/keys/:/root/.ssh/ resource_pool create research -c 1 -m 1
 
+should see:
+Analyzing hardware inventory...
+Creating RP with 1 cores and 1GB of memory...
+Initializing master server...
+.....
 
+docker run -it -v /var/tmp/ansible/:/etc/ansible -v /var/tmp/keys/:/root/.ssh/ resource_pool show research 
+
+should see:
+....
