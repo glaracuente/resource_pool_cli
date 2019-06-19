@@ -33,3 +33,16 @@ should see:
 |   CPU Cores    |       1       |
 |   GB of RAM    |       1       |
 +----------------+---------------+
+
+
+
+
+
+
+log into a master and run:
+    kubectl create deployment nginx --image=nginx
+    kubectl describe deployment nginx
+    kubectl create service nodeport nginx --tcp=80:80
+    kubectl get svc
+    curl 10.96.200.106
+ 
