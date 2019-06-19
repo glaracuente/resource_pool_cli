@@ -19,7 +19,7 @@ TEMPLATE_DIR = "{}/pool_template".format(ANSIBLE_DIR)
 FLEET_HOSTS_YAML_FILE = "{}/fleet/hosts".format(ANSIBLE_DIR)
 
 
-def init_pool(rp_name):
+def init_pool_dir(rp_name):
     shutil.copytree(TEMPLATE_DIR, "{}/{}".format(ANSIBLE_DIR, rp_name))
 
 
@@ -39,7 +39,7 @@ def get_master(hosts_file):
     return master_server
 
 
-def allocate_resources(hosts_file, masters_list, worker_list):
+def init_pool(hosts_file, masters_list, worker_list): #I can just use rp_name here instead of hosts_file
     # removing servers from fleet list
     with open(FLEET_HOSTS_YAML_FILE, "r") as stream:
         try:
@@ -76,7 +76,7 @@ def allocate_resources(hosts_file, masters_list, worker_list):
         yaml.dump(updated_pool_hosts_yaml, f)
 
 
-def repurpose_resources(hosts_file):
+def decomm_pool(hosts_file):  #I can just use rp_name here instead of hosts_file
     # removing servers from pool list
     pool_hosts_yaml_file = hosts_file
     returning_servers = []
@@ -91,7 +91,7 @@ def repurpose_resources(hosts_file):
                 returning_servers.append(master)
         except yaml.YAMLError as exc:
             click.echo(exc)
-    
+
     # adding servers to resource fleet list
     full_server_list = []
     with open(FLEET_HOSTS_YAML_FILE, "r") as stream:
@@ -241,9 +241,9 @@ def create(rp_name, cores, memory):
 
     click.echo("Creating RP with {} cores and {}GB of memory...".format(cores, memory))
 
-    init_pool(rp_name)
+    init_pool_dir(rp_name)
     hosts_file = "{}/{}/hosts".format(ANSIBLE_DIR, rp_name)
-    allocate_resources(hosts_file, masters_list, workers_list)
+    init_pool(hosts_file, masters_list, workers_list)
 
     master_server = get_master(hosts_file)
 
@@ -286,13 +286,121 @@ def create(rp_name, cores, memory):
     join_output = str(process.communicate()[0])
 
 @cli.command()
+@click.argument("rp_name")
 @click.option("--cores", "-c", type=int)
 @click.option("--memory", "-m", type=int)
-def resize(cores, memory):
+def resize(rp_name, cores, memory):
     if not cores and not memory:
         click.echo("You must specify cores or memory")
-    else:
-        click.echo("Resizing RP with {} cores and {}GB".format(cores, memory))
+        sys.exit()
+
+    #DID THIS EXACT PROCEDURE BEFORE...SHOULD BE WRAPPED IN A FUNCTION
+    pool_core_count = 0
+    pool_mem_amount = 0
+
+    pool_specs = get_specs(rp_name)
+
+    hosts_file = "{}/{}/hosts".format(ANSIBLE_DIR, rp_name)
+    master_server = get_master(hosts_file)
+
+    for server in pool_specs:
+        if server == master_server:
+            continue
+        this_server_core_count = pool_specs[server]["cores"]
+        this_server_mem_amount = pool_specs[server]["mem"]
+        pool_core_count = pool_core_count + this_server_core_count
+        pool_mem_amount = pool_mem_amount + this_server_mem_amount
+    #############
+
+    if cores:
+        if cores > pool_core_count:
+            click.echo("Gathering resources to increase core count...")
+            #THIS IS ALSO DONE ALREADY IN CREATE, AND SHOULD JUST BE A FUNCTION
+            click.echo("Analyzing hardware inventory...")
+            fleet_specs = get_specs("fleet")
+
+            requested_cores = cores - pool_core_count
+            new_cores = 0
+            workers_list = []  
+
+            for server in fleet_specs:
+                if new_cores < requested_cores:
+                    this_server_cores = fleet_specs[server]['cores']
+                    new_cores = new_cores + this_server_cores
+                    workers_list.append(server)
+    
+            if requested_cores < new_cores:
+                click.echo("There are not enough cores available to create a new resource pool.")
+                click.echo("Total cores available: {}".format(new_cores))
+                sys.exit()
+
+            click.echo("Resources are available and being migrated into the {} pool...".format(rp_name))
+            add_servers_to_pool(rp_name, workers_list)
+
+        elif cores < pool_core_count:
+            click.echo("Removing resources to decrease core count...")
+        else:
+            click.echo("Requested core count would not change the current pool resources.")
+
+    if memory:
+        if memory > pool_mem_amount:
+            click.echo("Gathering resources to increase memory...")
+        elif memory < pool_mem_amount:
+            click.echo("Removing resources to decrease memory...")
+        else:
+            click.echo("Requested memory would not change the current pool resources.")
+
+
+def add_servers_to_pool(rp_name, server_list): #NEED TO WORK FOR MEMORY ALSO
+    #move servers from fleet yaml to pool yaml
+    click.echo("removing servers from fleet...")
+    with open(FLEET_HOSTS_YAML_FILE, "r") as stream:
+        try:
+            fleet_hosts_yaml = yaml.safe_load(stream)
+            for server in server_list:
+                del fleet_hosts_yaml["all"]["hosts"][server]
+            updated_fleet_hosts_yaml = fleet_hosts_yaml
+        except yaml.YAMLError as exc:
+            click.echo(exc)
+
+    with open(FLEET_HOSTS_YAML_FILE, "w") as f:
+        yaml.dump(updated_fleet_hosts_yaml, f)
+
+    # adding servers to resource pool
+    click.echo("adding servers to {}...".format(rp_name))
+    pool_hosts_yaml_file = "{}/{}/hosts".format(ANSIBLE_DIR, rp_name)
+    with open(pool_hosts_yaml_file, "r") as stream:
+        try:
+            pool_hosts_yaml = yaml.safe_load(stream)
+            workers_dict = pool_hosts_yaml['all']['children']['workers']['hosts']
+            for worker in server_list:
+                workers_dict[worker] = None
+            pool_hosts_yaml['all']['children']['workers']['hosts'] = workers_dict
+
+            updated_pool_hosts_yaml = pool_hosts_yaml
+        except yaml.YAMLError as exc:
+            click.echo(exc)
+
+    with open(pool_hosts_yaml_file, "w") as f:
+        yaml.dump(updated_pool_hosts_yaml, f)
+
+    join_file = "/etc/ansible/{}/join".format(rp_name)
+    hosts_file = pool_hosts_yaml_file
+    cmd = "ansible-playbook {} -i {}".format(join_file, hosts_file)
+    process = subprocess.Popen(
+        cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    join_output = str(process.communicate()[0])
+
+def remove_servers_from_pool(rp_name, server_list): 
+    pass
+    #ap = "172.31.92.106"
+    #ip = "ip-{}".format(ap.replace('.','-'))
+    #need to drain nodes first(need playbook for this...master has to drain, worker has to reset)
+    #ansible-playbook drain -i ./hosts --extra-vars node-name=ip-172-31-92-106
+    #ansible-playbook --limit [SPECIFIC NODE 172.31.92.106]  destroy
+    # then move servers from pool to fleet yaml
+
 
 
 @cli.command()
@@ -322,7 +430,7 @@ def destroy(rp_name):
         destroy_output = str(process.communicate()[0])
 
         click.echo("Returning servers back to fleet...")
-        repurpose_resources(hosts_file)
+        decomm_pool(hosts_file)
         click.echo("Cleaning up files...")
         shutil.rmtree("{}/{}".format(ANSIBLE_DIR, rp_name))
     else:

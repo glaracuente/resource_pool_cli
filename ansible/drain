@@ -1,0 +1,8 @@
+---
+- hosts: master
+  tasks:
+    - name: kubeadm drain
+      shell: export KUBECONFIG=/etc/kubernetes/admin.conf; kubectl drain "{{ node-name }}" --force --ignore-daemonsets
+      register: results
+    - debug:
+        var: results.stdout
