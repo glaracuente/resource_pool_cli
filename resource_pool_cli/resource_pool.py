@@ -213,7 +213,7 @@ def create(rp_name, cores, memory):
         if this_server_cores > highest_core_count:
             highest_core_count = this_server_cores
             masters_list.clear()
-            masters_list.append(server)
+            masters_list.append(server)    
 
     for server in fleet_specs:
         if server in masters_list:
