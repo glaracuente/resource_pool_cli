@@ -179,7 +179,7 @@ def cli():
 @cli.command()
 def list():
     for file in os.listdir(ANSIBLE_DIR):
-        if not os.path.isdir(file) or file == "pool_template":
+        if not os.path.isdir("{}/{}".format(ANSIBLE_DIR, file)) or file == "pool_template":
             continue
         show_pool_info(file)
 

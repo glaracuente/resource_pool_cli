@@ -33,6 +33,7 @@ resource "aws_instance" "captain" {
 resource "aws_instance" "resource_server_master" {
   ami           = "ami-01d9d5f6cecc31f85"
   instance_type = "t2.medium"
+  count         = 2
   key_name      = "grlaracuente-IAM"
 
   tags = {
@@ -56,7 +57,7 @@ output "captain_public_ip" {
 }
 
 output "resource_server_master_public_ips" {
-  value = ["${aws_instance.resource_server_master.public_ip}"]
+  value = ["${aws_instance.resource_server_master.*.public_ip}"]
 }
 
 output "resource_server_worker_public_ips" {
