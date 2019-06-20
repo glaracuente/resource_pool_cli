@@ -1,0 +1,13 @@
+---
+- hosts: master
+  tasks:
+    - name: drain node
+      shell: export KUBECONFIG=/etc/kubernetes/admin.conf; kubectl drain "{{ node }}" --force --ignore-daemonsets
+      register: results
+    - debug:
+        var: results.stdout
+    - name: delete node
+      shell: export KUBECONFIG=/etc/kubernetes/admin.conf; kubectl delete node "{{ node }}"
+      register: results
+    - debug:
+        var: results.stdout
