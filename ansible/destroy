@@ -1,8 +1,0 @@
----
-- hosts: all
-  tasks:
-    - name: kubeadm reset
-      shell: kubeadm reset -f
-      register: results
-    - debug:
-        var: results.stdout
