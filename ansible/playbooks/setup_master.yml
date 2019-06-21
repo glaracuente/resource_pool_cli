@@ -1,0 +1,15 @@
+---
+- hosts: all
+  tasks:
+    - name: kubeadm init
+      shell: kubeadm init --pod-network-cidr=10.244.0.0/16
+    - name: install flannel network plugin
+      shell: |
+        export KUBECONFIG=/etc/kubernetes/admin.conf
+        sysctl net.bridge.bridge-nf-call-iptables=1
+        kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/62e44c867a2846fefb68bd5f178daf4da3095ccb/Documentation/kube-flannel.yml
+    - name: join token creation
+      shell: kubeadm token create --print-join-command
+      register: results
+    - debug:
+        var: results.stdout

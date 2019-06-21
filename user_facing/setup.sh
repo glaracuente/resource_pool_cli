@@ -19,20 +19,20 @@ mkdir "${DIR_ANSIBLE}/keys"
 
 mkdir "${DIR_ANSIBLE_PLAYBOOKS}"
 URL_ANSIBLE_PLAYBOOKS="${GIT_BASE_URL}/ansible/playbooks"
-for playbook in destroy drain k8s; do
-    wget "${URL_ANSIBLE_PLAYBOOKS}/${playbook}" -O "${DIR_ANSIBLE_PLAYBOOKS}/${playbook}"
+for playbook in drain reset install_k8s setup_master; do
+    wget "${URL_ANSIBLE_PLAYBOOKS}/${playbook}.yml" -O "${DIR_ANSIBLE_PLAYBOOKS}/${playbook}.yml"
 done
 
 mkdir "${DIR_POOL_TEMPLATE}"
 URL_POOL_TEMPLATE="${GIT_BASE_URL}/ansible/pool_template"
-for template_file in hosts join; do
-    wget "${URL_POOL_TEMPLATE}/${template_file}" -O "${DIR_POOL_TEMPLATE}/${template_file}"
+for template_file in join masters workers; do
+    wget "${URL_POOL_TEMPLATE}/${template_file}.yml" -O "${DIR_POOL_TEMPLATE}/${template_file}.yml"
 done
 
 mkdir "${DIR_ANSIBLE}/pools"
 mkdir "${DIR_ANSIBLE}/pools/fleet"
 URL_FLEET="${GIT_BASE_URL}/ansible/pools/fleet"
-wget "${URL_FLEET}/hosts" -O "${DIR_ANSIBLE}/pools/fleet/hosts"
+wget "${URL_FLEET}/hosts.yml" -O "${DIR_ANSIBLE}/pools/fleet/hosts.yml"
 
 # PULL THE RESOURCE_POOL DOCKER IMAGE
 docker pull glaracuente/resource_pool:${VERSION}

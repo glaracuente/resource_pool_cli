@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 variable "num_of_resource_worker_servers" {
-  default = 10
+  default = 5
 }
 
 resource "aws_instance" "captain" {
@@ -19,10 +19,6 @@ resource "aws_instance" "captain" {
               sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
               sudo apt-get update
               sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-              sudo curl -X GET https://raw.githubusercontent.com/glaracuente/resourcer/develop/ansible/Dockerfile > /var/tmp/Dockerfile
-              sudo docker build /var/tmp/ -t resource_pool
-              mkdir  /var/tmp/keys
-              mkdir  /var/tmp/ansible
               EOF
 
   tags = {
