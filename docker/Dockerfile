@@ -55,8 +55,11 @@ RUN set -x && \
     pip3 install prettytable && \
     apk add wget && \
     apk add vim && \
-    wget https://raw.githubusercontent.com/glaracuente/resourcer/develop/resource_pool_cli/resource_pool.py -O /var/tmp/resource_pool
+    wget https://raw.githubusercontent.com/glaracuente/resourcer/develop/resource_pool_cli/resource_pool.py -O /etc/resource_pool_cli/resource_pool.py
+# change to master for final release
+# also better to install as pip pkg
 
+#trim what is not needed below
 ENV ANSIBLE_GATHERING smart
 ENV ANSIBLE_HOST_KEY_CHECKING false
 ENV ANSIBLE_RETRY_FILES_ENABLED false
@@ -65,9 +68,9 @@ ENV ANSIBLE_SSH_PIPELINING True
 ENV PYTHONPATH /ansible/lib
 ENV PATH /ansible/bin:$PATH
 ENV ANSIBLE_LIBRARY /ansible/library
-
 WORKDIR /ansible/playbooks
+#
 
-RUN chmod 755 /var/tmp/resource_pool
-ENTRYPOINT ["/var/tmp/resource_pool"]
+RUN chmod 755 /etc/resource_pool_cli/resource_pool.py
+ENTRYPOINT ["/etc/resource_pool_cli/resource_pool.py"]
 
