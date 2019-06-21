@@ -55,6 +55,7 @@ RUN set -x && \
     pip3 install prettytable && \
     apk add wget && \
     apk add vim && \
+    mkdir /etc/resource_pool_cli/ && \
     wget https://raw.githubusercontent.com/glaracuente/resourcer/develop/resource_pool_cli/resource_pool.py -O /etc/resource_pool_cli/resource_pool.py
 # change to master for final release
 # also better to install as pip pkg
