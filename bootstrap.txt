@@ -1,42 +1,13 @@
+ sudo curl -X GET https://raw.githubusercontent.com/glaracuente/resourcer/develop/ansible/Dockerfile > /var/tmp/Dockerfile
+              sudo docker build /var/tmp/ -t glaracuente/resource_pool:stable
+              docker push glaracuente/resource_pool:stable
+
+
 cd /terraform
 terraform apply -auto-approve
 ssh into "captain" ec2 instance and follow:
 
-
-
-docker run -it --entrypoint="" -v /var/tmp/ansible/:/etc/ansible -v /var/tmp/keys/:/root/.ssh/ resource_pool bash
-[inside container]. ssh-keygen
-[inside container] chmod 400 ~/.ssh/id_rsa*; exit
-Copy /var/tmp/keys/id_rsa.pub to /root/authorized_keys on all resoure_server ec2 instances 
-
-Get ansible dir as it is in the git repo (need a better way to do this, git pull maybe)
-Puts [k8s] and private IPs of ec2 instances in /var/tmp/ansible/fleet/hosts file (need better way for this also...use aws cli parsing)
-
-docker run -it -v /var/tmp/ansible/:/etc/ansible -v /var/tmp/keys/:/root/.ssh/ resource_pool create research -c 1 -m 1
-
-should see:
-Analyzing hardware inventory...
-Creating RP with 1 cores and 1GB of memory...
-Initializing master server...
-waiting for master to be ready...
-Joining workers to the master...
-
-
-docker run -it -v /var/tmp/ansible/:/etc/ansible -v /var/tmp/keys/:/root/.ssh/ resource_pool show research 
-
-should see:
-....
-+----------------+---------------+
-|   Pool Name    |    research   |
-+----------------+---------------+
-| Cluster Master | 172.31.85.136 |
-|   CPU Cores    |       1       |
-|   GB of RAM    |       1       |
-+----------------+---------------+
-
-
-
-
+setup.sh
 
 
 log into a master and run:
@@ -46,3 +17,6 @@ log into a master and run:
     kubectl get svc
     curl 10.96.200.106
  
+
+ advanced, not trivial to do without using cloud
+    kubectl expose deployment nginx --type=LoadBalancer --name=my-service

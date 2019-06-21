@@ -34,8 +34,6 @@ mkdir "${DIR_ANSIBLE}/pools/fleet"
 URL_FLEET="${GIT_BASE_URL}/ansible/pools/fleet"
 wget "${URL_FLEET}/hosts" -O "${DIR_ANSIBLE}/pools/fleet/hosts"
 
-
-
 # PULL THE RESOURCE_POOL DOCKER IMAGE
 docker pull glaracuente/resource_pool:${VERSION}
 
@@ -43,16 +41,11 @@ docker pull glaracuente/resource_pool:${VERSION}
 docker run -it --entrypoint="" -v ${DIR_ANSIBLE}:/etc/ansible -v ${DIR_ANSIBLE}/keys/:/root/.ssh/  glaracuente/resource_pool:${VERSION} /usr/bin/ssh-keygen -f /root/.ssh/id_rsa -t rsa -N ''
 chmod 400 ${DIR_ANSIBLE}/keys/*
 
+# fetch the actual resource_pool wrapper  .....need to turn this into a pip install
+wget ${GIT_BASE_URL}/user_facing/resource_pool.sh -O "${DIR_RESOURCE_POOL}/resource_pool.sh"
 
-# wget the actual resource bash script as /etc/resource_pool/resource_pool .....or pip install it
-#wget ${GIT_BASE_URL}/resource_pool_cli/resource_pool -O "${DIR_RESOURCE_POOL}/resource_pool" #THIS IS THE BASH WRAPPER
-# which will just run docker run -it -v /etc/resource_pool/ansible/:/etc/ansible -v /etc/resource_pool/keys/:/root/.ssh/ glaracuente/resource_pool:develop 
+echo "The resource_pool utility is now available at /etc/resource_pool/resource_pool.sh. Before using, you should:\n"
 
-# PROMPT USER TO ADD THIS KEY TO AUTH KEYS FOR THEIR SERVERS /root/authorized_keys
-# PROMPT USER TO ADD /etc/resource_pool to their path
-# LET THEM KNOW IT CAN NOW BE RUN WITH /etc/resource_pool/resource_pool
-
-
-# Puts [k8s] and private IPs of ec2 instances in /var/tmp/ansible/fleet/hosts file (need better way for this also...use aws cli parsing)
-#     touch /var/tmp/server_ips
-#     transofrm them into /var/tmp/ansible/pools/fleet/hosts.yaml
+echo "1) Add the contents of /etc/resource_pool/ansible/keys/id_rsa.pub to /root/authorized_keys all servers you would like to use for this set of infrastructure."
+echo "2) Add IP addresses of these servers to /var/tmp/ansible/fleet/hosts"
+# NEED TO ACTUALLY LET THEM PUT IT IN CSV OR NEWLINE FORMAT, AND GIVE THEM SCRIPT TO ADD TO FLEET_HOSTS FILE IN PROPER YAML...server_transfer.sh
