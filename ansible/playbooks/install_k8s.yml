@@ -42,9 +42,9 @@
         name: "{{ packages }}"
       vars:
         packages:
-        - kubelet
-        - kubeadm
-        - kubectl
+        - kubelet=1.14.3-00
+        - kubeadm=1.14.3-00
+        - kubectl=1.14.3-00
     - name: apk-mark hold
       shell: apt-mark hold kubelet kubeadm kubectl
     - name: daemon-reload to pick up config changes
