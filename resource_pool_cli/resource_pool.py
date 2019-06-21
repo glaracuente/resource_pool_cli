@@ -15,109 +15,95 @@ import shutil
 
 
 ANSIBLE_DIR = "/etc/ansible"
+PLAYBOOK_DIR = "{}/playbooks".format(ANSIBLE_DIR)
 TEMPLATE_DIR = "{}/pool_template".format(ANSIBLE_DIR)
-FLEET_HOSTS_YAML_FILE = "{}/fleet/hosts".format(ANSIBLE_DIR)
+POOLS_DIR = "{}/pools".format(ANSIBLE_DIR)
+FLEET_HOSTS_YAML_FILE = "{}/pools/fleet/hosts.yml".format(ANSIBLE_DIR)
 
 
 def init_pool_dir(rp_name):
-    shutil.copytree(TEMPLATE_DIR, "{}/{}".format(ANSIBLE_DIR, rp_name))
+    shutil.copytree(TEMPLATE_DIR, "{}/{}".format(POOLS_DIR, rp_name))
 
 
-def get_master(hosts_file):
-    with open(hosts_file, "r") as stream:
+def run_playbook(playbook_name, hosts_yaml_file):
+    playbook_cmd = "ansible-playbook {}/{}.yml -i {}".format(PLAYBOOK_DIR, playbook_name, hosts_yaml_file)
+   
+    process = subprocess.Popen(
+        playbook_cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    playbook_cmd_output = str(process.communicate()[0])
+    print(playbook_cmd_output)
+    return playbook_cmd_output
+
+
+def transfer_servers(servers_list, from_yaml_file, to_yaml_file):
+    from_rp_name = from_yaml_file.split('/')[-2]
+    to_rp_name = to_yaml_file.split('/')[-2]
+
+    click.echo("Removing servers from {}...".format(from_rp_name))
+    with open(from_yaml_file, "r") as stream:
         try:
-            master_server_pair = yaml.safe_load(stream)["all"]["children"]["master"][
-                "hosts"
-            ]
-            for key in master_server_pair:
-                master_server = key
-        except yaml.YAMLError as exc:
-            click.echo(exc)
-        except KeyError as key_exc:
-            return "None"
-
-    return master_server
-
-
-def init_pool(
-    hosts_file, masters_list, worker_list
-):  # I can just use rp_name here instead of hosts_file
-    # removing servers from fleet list
-    with open(FLEET_HOSTS_YAML_FILE, "r") as stream:
-        try:
-            fleet_hosts_yaml = yaml.safe_load(stream)
-            servers = masters_list + worker_list
-            for server in servers:
-                del fleet_hosts_yaml["all"]["hosts"][server]
-            updated_fleet_hosts_yaml = fleet_hosts_yaml
+            from_yaml = yaml.safe_load(stream)
+            for server in servers_list:
+                del from_yaml["all"]["hosts"][server]
+            updated_from_yaml = from_yaml
         except yaml.YAMLError as exc:
             click.echo(exc)
 
-    with open(FLEET_HOSTS_YAML_FILE, "w") as f:
-        yaml.dump(updated_fleet_hosts_yaml, f)
+    with open(from_yaml_file, "w") as f:
+        yaml.dump(updated_from_yaml, f)
 
-    # adding servers to resource server list
-    pool_hosts_yaml_file = hosts_file
-    with open(pool_hosts_yaml_file, "r") as stream:
+    click.echo("Adding servers to {}...".format(to_rp_name))
+    with open(to_yaml_file, "r") as stream:
         try:
-            pool_hosts_yaml = yaml.safe_load(stream)
-            temp_workers_dict = {}
-            for worker in worker_list:
-                temp_workers_dict[worker] = None
-            pool_hosts_yaml["all"]["children"]["workers"]["hosts"] = temp_workers_dict
-
-            temp_masters_dict = {}
-            for master in masters_list:
-                temp_masters_dict[master] = None
-            pool_hosts_yaml["all"]["children"]["master"]["hosts"] = temp_masters_dict
-            updated_pool_hosts_yaml = pool_hosts_yaml
-        except yaml.YAMLError as exc:
-            click.echo(exc)
-
-    with open(pool_hosts_yaml_file, "w") as f:
-        yaml.dump(updated_pool_hosts_yaml, f)
-
-
-def decomm_pool(hosts_file):  # I can just use rp_name here instead of hosts_file
-    # removing servers from pool list
-    pool_hosts_yaml_file = hosts_file
-    returning_servers = []
-    with open(pool_hosts_yaml_file, "r") as stream:
-        try:
-            pool_hosts_yaml = yaml.safe_load(stream)
-            workers = pool_hosts_yaml["all"]["children"]["workers"]["hosts"]
-            for worker in workers:
-                returning_servers.append(worker)
-            masters = pool_hosts_yaml["all"]["children"]["master"]["hosts"]
-            for master in masters:
-                returning_servers.append(master)
-        except yaml.YAMLError as exc:
-            click.echo(exc)
-
-    # adding servers to resource fleet list
-    full_server_list = []
-    with open(FLEET_HOSTS_YAML_FILE, "r") as stream:
-        try:
-            fleet_hosts_yaml = yaml.safe_load(stream)
+            to_yaml = yaml.safe_load(stream)
             temp_servers_dict = {}
 
-            current_fleet_servers = fleet_hosts_yaml["all"]["hosts"]
-            for server in current_fleet_servers:
+            current_servers = to_yaml["all"]["hosts"]
+            if current_servers:
+                for server in current_servers:
+                    temp_servers_dict[server] = None
+
+            for server in servers_list:
                 temp_servers_dict[server] = None
 
-            for server in returning_servers:
-                temp_servers_dict[server] = None
+            to_yaml["all"]["hosts"] = temp_servers_dict
+            updated_to_yaml = to_yaml
 
-            fleet_hosts_yaml["all"]["hosts"] = temp_servers_dict
-            updated_fleet_hosts_yaml = fleet_hosts_yaml
         except yaml.YAMLError as exc:
             click.echo(exc)
 
-    with open(FLEET_HOSTS_YAML_FILE, "w") as f:
-        yaml.dump(updated_fleet_hosts_yaml, f)
+    with open(to_yaml_file, "w") as f:
+        yaml.dump(updated_to_yaml, f)
 
 
-def add_servers_to_pool(rp_name, server_list):  # NEED TO WORK FOR MEMORY ALSO
+def get_all_servers_in_yaml_file(yaml_file):
+    all_servers_in_yaml_file = []
+
+    with open(yaml_file, "r") as stream:
+        try:
+            servers_yaml = yaml.safe_load(stream)
+            servers_list = servers_yaml["all"]["hosts"]
+            for server in servers_list:
+                all_servers_in_yaml_file.append(server)
+        except FileNotFoundError as fnfe:
+            click.echo("{} does not exist".format(yaml_file))
+            sys.exit()
+        except yaml.YAMLError as exc:
+            click.echo(exc)
+
+    return all_servers_in_yaml_file
+
+
+def init_pool(rp_name, masters_list, workers_list):
+    masters_yaml_file = "{}/{}/masters.yml".format(POOLS_DIR, rp_name)
+    transfer_servers(masters_list, FLEET_HOSTS_YAML_FILE, masters_yaml_file)
+   
+    workers_yaml_file = "{}/{}/workers.yml".format(POOLS_DIR, rp_name)
+    transfer_servers(workers_list, FLEET_HOSTS_YAML_FILE, workers_yaml_file)
+
+
+def resize_add_servers_to_pool(rp_name, server_list):  # NEED TO WORK FOR MEMORY ALSO # NEED TO SEPARATE THIS INTO JUST PLAYBOOK CALLS, AND UTILITIZE NEW TRANSFER FUNCTION
     # move servers from fleet yaml to pool yaml
     click.echo("removing servers from fleet...")
     with open(FLEET_HOSTS_YAML_FILE, "r") as stream:
@@ -161,9 +147,9 @@ def add_servers_to_pool(rp_name, server_list):  # NEED TO WORK FOR MEMORY ALSO
     join_output = str(process.communicate()[0])
 
 
-def remove_servers_from_pool(rp_name, server_list):
+def resize_return_servers_to_fleet(hosts_file, server_list): #NEED TO SEPARATE THIS INTO JUST PLAYBOOK CALLS, AND UTILITIZE NEW TRANSFER FUNCTION
     # Need to make this more scalable, not do one node at a time
-    hosts_file = "{}/{}/hosts".format(ANSIBLE_DIR, rp_name)
+    hosts_file = "{}/{}/hosts".format(POOLS_DIR, rp_name)
     for server in server_list:
         node_name = "ip-{}".format(
             server.replace(".", "-")
@@ -220,24 +206,30 @@ def remove_servers_from_pool(rp_name, server_list):
 
 
 def get_specs(rp_name):
-    rp_dir = "{}/{}".format(ANSIBLE_DIR, rp_name)
+    rp_dir = "{}/{}".format(POOLS_DIR, rp_name)
+    server_file_name = "workers.yml"
 
-    cmd = "ansible workers -i {}/hosts -m gather_facts --tree {}".format(rp_dir, rp_dir)
+    if rp_name == "fleet":
+        server_file_name = "hosts.yml"
+
+    ansible_facts_cmd = "ansible all -i {}/{} -m gather_facts --tree {}".format(rp_dir, server_file_name, rp_dir)
     process = subprocess.Popen(
-        cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        ansible_facts_cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
-    out = process.communicate()[0]
+    ansible_facts_cmd_out = process.communicate()[0]
 
     specs = {}
 
+    # the ansible_facts_cmd saves facts as files named as the server
     for file in os.listdir(rp_dir):
-        if not file.startswith("1"):
+        if file.endswith(".yml"):
             continue
 
         with open("{}/{}".format(rp_dir, file), "r") as myfile:
             data = myfile.read()
         facts = json.loads(data)
 
+        # removes facts from server that cannot be reachced, in order to produce accurate spec counts
         if "msg" in facts:
             if facts["msg"].startswith("SSH Error"):
                 os.remove("{}/{}".format(rp_dir, file))
@@ -260,8 +252,10 @@ def show_pool_info(rp_name):
 
     specs = get_specs(rp_name)
 
-    hosts_file = "{}/{}/hosts".format(ANSIBLE_DIR, rp_name)
-    master_server = get_master(hosts_file)
+    if rp_name == "fleet":
+        master_server = "N/A"
+    else:
+        master_server = get_all_servers_in_yaml_file("{}/{}/masters".format(POOLS_DIR, rp_name))
 
     for server in specs:
         this_server_core_count = specs[server]["cores"]
@@ -283,12 +277,7 @@ def cli():
 
 @cli.command()
 def list():
-    for file in os.listdir(ANSIBLE_DIR):
-        if (
-            not os.path.isdir("{}/{}".format(ANSIBLE_DIR, file))
-            or file == "pool_template"
-        ):
-            continue
+    for file in os.listdir(POOLS_DIR):
         show_pool_info(file)
 
 
@@ -354,23 +343,23 @@ def create(rp_name, cores, memory):
     click.echo("Creating RP with {} cores and {}GB of memory...".format(cores, memory))
 
     init_pool_dir(rp_name)
-    hosts_file = "{}/{}/hosts".format(ANSIBLE_DIR, rp_name)
-    init_pool(hosts_file, masters_list, workers_list)
+    init_pool(rp_name, masters_list, workers_list)
 
-    master_server = get_master(hosts_file)
-
+    masters_file = "{}/{}/masters.yml".format(POOLS_DIR, rp_name)
+    master_server = get_all_servers_in_yaml_file(masters_file)
+    master_server = master_server[0]
+    
     click.echo("Initializing master server...")
-    cmd = "ansible-playbook -i {} /etc/ansible/k8s".format(hosts_file)
-    process = subprocess.Popen(
-        cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    kubeadm_init_output = str(process.communicate()[0])
+    run_playbook("install_k8s", masters_file)
+    kubeadm_init_output = run_playbook("setup_master", masters_file)
+
     token = kubeadm_init_output.split("--token")[1].split()[0]
     cert_hash = kubeadm_init_output.split("--discovery-token-ca-cert-hash")[1].split()[
         0
     ]
 
-    join_file = "/etc/ansible/{}/join".format(rp_name)
+    #formatting unique join file for this pool, since each master has a a unique token/hash required to join it
+    join_file = "{}/{}/join.yml".format(POOLS_DIR, rp_name)
     with fileinput.FileInput(join_file, inplace=True) as file:
         for line in file:
             print(line.replace("MASTERIP", master_server), end="")
@@ -389,13 +378,16 @@ def create(rp_name, cores, memory):
 
     click.echo("waiting for master to be ready...")
     time.sleep(35)
-    click.echo("Joining workers to the master...")
 
-    cmd = "ansible-playbook {} -i {}".format(join_file, hosts_file)
+    click.echo("Joining workers to the master...")
+    workers_file = "{}/{}/workers.yml".format(POOLS_DIR, rp_name)
+    run_playbook("install_k8s", workers_file)
+    join_cmd = "ansible-playbook {} -i {}".format(join_file, workers_file)
     process = subprocess.Popen(
-        cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        join_cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
-    join_output = str(process.communicate()[0])
+    join_cmd_output = str(process.communicate()[0])
+    print(join_cmd_output)
 
 
 @cli.command()
@@ -487,7 +479,7 @@ def resize(rp_name, cores, memory):
 
 @cli.command()
 @click.argument("rp_name")
-def destroy(rp_name):
+def destroy(rp_name): # Still need to protect user against wrong rp_name...should make this a function to inject into every main function
     click.echo(
         "You are attempting to destroy the {} resource pool.\nThis cannot be undone".format(
             rp_name
@@ -503,18 +495,22 @@ def destroy(rp_name):
     user_validation_string = input("Enter string : ")
 
     if user_validation_string == validation_string:
-        hosts_file = "{}/{}/hosts".format(ANSIBLE_DIR, rp_name)
-        click.echo("Destroying cluster...")
-        cmd = "ansible-playbook /etc/ansible/destroy -i {}".format(hosts_file)
-        process = subprocess.Popen(
-            cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        destroy_output = str(process.communicate()[0])
+        masters_yaml_file = "{}/{}/masters.yml".format(POOLS_DIR, rp_name)
+        workers_yaml_file = "{}/{}/workers.yml".format(POOLS_DIR, rp_name)
 
+        click.echo("Destroying cluster...")
+        run_playbook("reset", masters_yaml_file)
+        run_playbook("reset", masters_yaml_file)
+        
         click.echo("Returning servers back to fleet...")
-        decomm_pool(hosts_file)
+        all_masters_list = get_all_servers_in_yaml_file(masters_yaml_file)
+        all_workers_list = get_all_servers_in_yaml_file(workers_yaml_file)
+
+        transfer_servers(all_masters_list, masters_yaml_file, FLEET_HOSTS_YAML_FILE)
+        transfer_servers(all_workers_list, workers_yaml_file, FLEET_HOSTS_YAML_FILE)
+
         click.echo("Cleaning up files...")
-        shutil.rmtree("{}/{}".format(ANSIBLE_DIR, rp_name))
+        shutil.rmtree("{}/{}".format(POOLS_DIR, rp_name))
     else:
         click.echo("Your input did not match the validation string")
 

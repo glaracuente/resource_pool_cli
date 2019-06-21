@@ -6,3 +6,5 @@
       register: results
     - debug:
         var: results.stdout
+
+# NEED TO ADDRESS THIS ISSUE ---> rm -rf /var/lib/etcd

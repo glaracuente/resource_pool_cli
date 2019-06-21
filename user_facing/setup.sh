@@ -43,6 +43,7 @@ chmod 400 ${DIR_ANSIBLE}/keys/*
 
 # fetch the actual resource_pool wrapper  .....need to turn this into a pip install
 wget ${GIT_BASE_URL}/user_facing/resource_pool.sh -O "${DIR_RESOURCE_POOL}/resource_pool.sh"
+chmod 755 "${DIR_RESOURCE_POOL}/resource_pool.sh"
 
 echo "The resource_pool utility is now available at /etc/resource_pool/resource_pool.sh. Before using, you should:\n"
 
