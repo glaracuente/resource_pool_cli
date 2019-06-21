@@ -255,7 +255,7 @@ def show_pool_info(rp_name):
     if rp_name == "fleet":
         master_server = "N/A"
     else:
-        master_server = get_all_servers_in_yaml_file("{}/{}/masters".format(POOLS_DIR, rp_name))
+        master_server = get_all_servers_in_yaml_file("{}/{}/masters.yml".format(POOLS_DIR, rp_name))[0]
 
     for server in specs:
         this_server_core_count = specs[server]["cores"]
@@ -500,7 +500,7 @@ def destroy(rp_name): # Still need to protect user against wrong rp_name...shoul
 
         click.echo("Destroying cluster...")
         run_playbook("reset", masters_yaml_file)
-        run_playbook("reset", masters_yaml_file)
+        run_playbook("reset", workers_yaml_file)
         
         click.echo("Returning servers back to fleet...")
         all_masters_list = get_all_servers_in_yaml_file(masters_yaml_file)
