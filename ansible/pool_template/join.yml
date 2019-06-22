@@ -1,5 +1,5 @@
 ---
-- hosts: workers
+- hosts: all
   tasks:
     - name: kubeadm join
       shell: kubeadm join MASTERIP:6443 CREDS

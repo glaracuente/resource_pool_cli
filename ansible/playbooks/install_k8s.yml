@@ -1,0 +1,58 @@
+---
+- hosts: all
+  tasks:
+    - name: apt-get update
+      apt:
+        update_cache: yes
+    - name: install prep pkgs
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - python
+        - apt-transport-https
+        - curl
+        - ca-certificates
+        - gnupg-agent
+        - software-properties-common
+    - name: add docker repo
+      shell: |
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - # get_url
+        add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" # apt_repository             
+    - name: apt-get update
+      apt:
+        update_cache: yes         
+    - name: install docker pkgs
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+    - name: add k8s repo
+      shell: |
+        curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - # get_url
+        echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list # apt_repository ?
+    - name: apt-get update
+      apt:
+        update_cache: yes
+    - name: install k8s pkgs
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - kubelet=1.14.3-00
+        - kubeadm=1.14.3-00
+        - kubectl=1.14.3-00
+    - name: apk-mark hold
+      shell: apt-mark hold kubelet kubeadm kubectl
+    - name: daemon-reload to pick up config changes
+      systemd:
+        daemon_reload: yes
+    - name: restart kubelet
+      systemd:
+        state: restarted
+        name: kubelet
+
+
