@@ -21,8 +21,26 @@ POOLS_DIR = "{}/pools".format(ANSIBLE_DIR)
 FLEET_HOSTS_YAML_FILE = "{}/pools/fleet/hosts.yml".format(ANSIBLE_DIR)
 
 
+def verify_rp_name(rp_name):
+    is_rp_name_valid = False
+
+    for file in os.listdir(POOLS_DIR):
+        if file == rp_name:
+            is_rp_name_valid = True
+    
+    if not is_rp_name_valid:
+        click.echo("There is no resource pool named {}.".format(rp_name))
+        sys.exit()
+
+
 def init_pool_dir(rp_name):
     shutil.copytree(TEMPLATE_DIR, "{}/{}".format(POOLS_DIR, rp_name))
+
+
+def randomString(stringLength=10):
+    """Generate a random string of fixed length """
+    letters = string.ascii_lowercase
+    return "".join(random.choice(letters) for i in range(stringLength))
 
 
 def run_playbook(playbook_name, hosts_yaml_file):
@@ -166,7 +184,7 @@ def resize_add_servers_to_pool(rp_name, server_list):  # NEED TO WORK FOR MEMORY
     join_output = str(process.communicate()[0])
 
 
-def resize_return_servers_to_fleet(hosts_file-shouldberp_bname, server_list):  # NEED TO SEPARATE THIS INTO JUST PLAYBOOK CALLS, AND UTILITIZE NEW TRANSFER FUNCTION
+def resize_return_servers_to_fleet(rp_name, server_list):  # NEED TO SEPARATE THIS INTO JUST PLAYBOOK CALLS, AND UTILITIZE NEW TRANSFER FUNCTION
     # Need to make this more scalable, not do one node at a time
     hosts_file = "{}/{}/hosts".format(POOLS_DIR, rp_name)
     for server in server_list:
@@ -317,6 +335,7 @@ def list():
 @cli.command()
 @click.argument("rp_name")
 def show(rp_name):
+    verify_rp_name(rp_name)
     show_pool_info(rp_name)
 
 
@@ -325,6 +344,7 @@ def show(rp_name):
 @click.option("--cores", "-c", type=int)
 @click.option("--memory", "-m", type=int)
 def create(rp_name, cores, memory):
+    verify_rp_name(rp_name)
     if not cores or not memory:
         click.echo("You must specify cores and memory")
         sys.exit()
@@ -428,6 +448,7 @@ def create(rp_name, cores, memory):
 @click.option("--cores", "-c", type=int)
 @click.option("--memory", "-m", type=int)
 def resize(rp_name, cores, memory):  #NEED TO REALLY TEST
+    verify_rp_name(rp_name)
     if not cores and not memory:
         click.echo("You must specify cores or memory")
         sys.exit()
@@ -534,6 +555,7 @@ def resize(rp_name, cores, memory):  #NEED TO REALLY TEST
 @cli.command()
 @click.argument("rp_name")
 def destroy(rp_name):
+    verify_rp_name(rp_name)
     warning = "You are attempting to destroy the {} resource pool.\nThis cannot be undone".format(rp_name)
 
     if has_user_confirmed(warning):
@@ -555,12 +577,6 @@ def destroy(rp_name):
         shutil.rmtree("{}/{}".format(POOLS_DIR, rp_name))
     else:
         click.echo("Your input did not match the validation string")
-
-
-def randomString(stringLength=10):
-    """Generate a random string of fixed length """
-    letters = string.ascii_lowercase
-    return "".join(random.choice(letters) for i in range(stringLength))
 
 
 if __name__ == "__main__":
