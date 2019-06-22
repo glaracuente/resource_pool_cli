@@ -26,19 +26,21 @@ def init_pool_dir(rp_name):
 
 
 def run_playbook(playbook_name, hosts_yaml_file):
-    playbook_cmd = "ansible-playbook {}/{}.yml -i {}".format(PLAYBOOK_DIR, playbook_name, hosts_yaml_file)
-   
+    playbook_cmd = "ansible-playbook {}/{}.yml -i {}".format(
+        PLAYBOOK_DIR, playbook_name, hosts_yaml_file
+    )
+
     process = subprocess.Popen(
         playbook_cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     playbook_cmd_output = str(process.communicate()[0])
-    print(playbook_cmd_output)
+    #print(playbook_cmd_output)
     return playbook_cmd_output
 
 
 def transfer_servers(servers_list, from_yaml_file, to_yaml_file):
-    from_rp_name = from_yaml_file.split('/')[-2]
-    to_rp_name = to_yaml_file.split('/')[-2]
+    from_rp_name = from_yaml_file.split("/")[-2]
+    to_rp_name = to_yaml_file.split("/")[-2]
 
     click.echo("Removing servers from {}...".format(from_rp_name))
     with open(from_yaml_file, "r") as stream:
@@ -77,6 +79,23 @@ def transfer_servers(servers_list, from_yaml_file, to_yaml_file):
         yaml.dump(updated_to_yaml, f)
 
 
+def has_user_confirmed(warning):
+    click.echo(warning)
+    validation_string = randomString(5)
+    click.echo(
+        "To confirm this action, please type out the following string: {}".format(
+            validation_string
+        )
+    )
+
+    user_validation_string = input("Enter string : ")
+
+    if user_validation_string == validation_string:
+        return True
+    else:
+        return False
+
+
 def get_all_servers_in_yaml_file(yaml_file):
     all_servers_in_yaml_file = []
 
@@ -98,7 +117,7 @@ def get_all_servers_in_yaml_file(yaml_file):
 def init_pool(rp_name, masters_list, workers_list):
     masters_yaml_file = "{}/{}/masters.yml".format(POOLS_DIR, rp_name)
     transfer_servers(masters_list, FLEET_HOSTS_YAML_FILE, masters_yaml_file)
-   
+
     workers_yaml_file = "{}/{}/workers.yml".format(POOLS_DIR, rp_name)
     transfer_servers(workers_list, FLEET_HOSTS_YAML_FILE, workers_yaml_file)
 
@@ -136,7 +155,7 @@ def resize_add_servers_to_pool(rp_name, server_list):  # NEED TO WORK FOR MEMORY
     with open(pool_hosts_yaml_file, "w") as f:
         yaml.dump(updated_pool_hosts_yaml, f)
 
-    #NEED TO RUN INSTALL KUBE STUFF FIRST....NEED TO BREAK OUT INTO SEPERATE PLAYBOOK
+    # NEED TO RUN INSTALL KUBE STUFF FIRST....NEED TO BREAK OUT INTO SEPERATE PLAYBOOK
     # NEED..might also be easier to separate workers and master into diff files
     join_file = "{}/{}/join".format(ANSIBLE_DIR, rp_name)
     hosts_file = pool_hosts_yaml_file
@@ -147,7 +166,7 @@ def resize_add_servers_to_pool(rp_name, server_list):  # NEED TO WORK FOR MEMORY
     join_output = str(process.communicate()[0])
 
 
-def resize_return_servers_to_fleet(hosts_file, server_list): #NEED TO SEPARATE THIS INTO JUST PLAYBOOK CALLS, AND UTILITIZE NEW TRANSFER FUNCTION
+def resize_return_servers_to_fleet(hosts_file-shouldberp_bname, server_list):  # NEED TO SEPARATE THIS INTO JUST PLAYBOOK CALLS, AND UTILITIZE NEW TRANSFER FUNCTION
     # Need to make this more scalable, not do one node at a time
     hosts_file = "{}/{}/hosts".format(POOLS_DIR, rp_name)
     for server in server_list:
@@ -158,12 +177,14 @@ def resize_return_servers_to_fleet(hosts_file, server_list): #NEED TO SEPARATE T
             ANSIBLE_DIR, hosts_file, node_name
         )
         process = subprocess.Popen(
-            cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
         drain_output = str(process.communicate()[0])
 
         cmd = "ansible-playbook -i {} --limit {} destroy".format(hosts_file, server)
         process = subprocess.Popen(
-            cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
         destroy_output = str(process.communicate()[0])
 
     # then move servers from pool to fleet yaml...SHOULD JUST BE FUNCTION TO MOVE FROM ONE YAML TO OTHER
@@ -182,7 +203,7 @@ def resize_return_servers_to_fleet(hosts_file, server_list): #NEED TO SEPARATE T
     with open(pool_hosts_yaml_file, "w") as f:
         yaml.dump(updated_pool_hosts_yaml, f)
 
-    # adding servers to fleet 
+    # adding servers to fleet
     click.echo("Adding servers to fleet...")
     with open(FLEET_HOSTS_YAML_FILE, "r") as stream:
         try:
@@ -212,7 +233,9 @@ def get_specs(rp_name):
     if rp_name == "fleet":
         server_file_name = "hosts.yml"
 
-    ansible_facts_cmd = "ansible all -i {}/{} -m gather_facts --tree {}".format(rp_dir, server_file_name, rp_dir)
+    ansible_facts_cmd = "ansible all -i {}/{} -m gather_facts --tree {}".format(
+        rp_dir, server_file_name, rp_dir
+    )
     process = subprocess.Popen(
         ansible_facts_cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
@@ -246,27 +269,37 @@ def get_specs(rp_name):
     return specs
 
 
-def show_pool_info(rp_name):
+def get_total_cores_mem(rp_name):
     pool_core_count = 0
     pool_mem_amount = 0
 
     specs = get_specs(rp_name)
 
-    if rp_name == "fleet":
-        master_server = "N/A"
-    else:
-        master_server = get_all_servers_in_yaml_file("{}/{}/masters.yml".format(POOLS_DIR, rp_name))[0]
-
     for server in specs:
         this_server_core_count = specs[server]["cores"]
         this_server_mem_amount = specs[server]["mem"]
-        pool_core_count = pool_core_count + this_server_core_count
-        pool_mem_amount = pool_mem_amount + this_server_mem_amount
+        pool_core_count += this_server_core_count
+        pool_mem_amount += this_server_mem_amount
+
+    return [pool_core_count, round(pool_mem_amount, 2)]
+
+
+def show_pool_info(rp_name):
+    total_cores_mem = get_total_cores_mem(rp_name)
+    pool_core_count = total_cores_mem[0]
+    pool_mem_amount = total_cores_mem[1]
+
+    if rp_name == "fleet":
+        master_server = "N/A"
+    else:
+        master_server = get_all_servers_in_yaml_file(
+            "{}/{}/masters.yml".format(POOLS_DIR, rp_name)
+        )[0]
 
     output_table = PrettyTable(["Pool Name", rp_name])
     output_table.add_row(["Cluster Master", master_server])
     output_table.add_row(["CPU Cores", pool_core_count])
-    output_table.add_row(["GB of RAM", round(pool_mem_amount, 2)])
+    output_table.add_row(["GB of RAM", pool_mem_amount])
     click.echo(output_table)
 
 
@@ -317,9 +350,9 @@ def create(rp_name, cores, memory):
             continue
         if total_cores < cores or total_memory < memory:
             this_server_cores = fleet_specs[server]["cores"]
-            total_cores = total_cores + this_server_cores
+            total_cores += this_server_cores
             this_server_memory = fleet_specs[server]["mem"]
-            total_memory = total_memory + this_server_memory
+            total_memory += this_server_memory
             workers_list.append(server)
 
     resources_fulfilled = True
@@ -348,7 +381,7 @@ def create(rp_name, cores, memory):
     masters_file = "{}/{}/masters.yml".format(POOLS_DIR, rp_name)
     master_server = get_all_servers_in_yaml_file(masters_file)
     master_server = master_server[0]
-    
+
     click.echo("Initializing master server...")
     run_playbook("install_k8s", masters_file)
     kubeadm_init_output = run_playbook("setup_master", masters_file)
@@ -358,7 +391,7 @@ def create(rp_name, cores, memory):
         0
     ]
 
-    #formatting unique join file for this pool, since each master has a a unique token/hash required to join it
+    # formatting unique join file for this pool, since each master has a a unique token/hash required to join it
     join_file = "{}/{}/join.yml".format(POOLS_DIR, rp_name)
     with fileinput.FileInput(join_file, inplace=True) as file:
         for line in file:
@@ -394,114 +427,123 @@ def create(rp_name, cores, memory):
 @click.argument("rp_name")
 @click.option("--cores", "-c", type=int)
 @click.option("--memory", "-m", type=int)
-def resize(rp_name, cores, memory):
+def resize(rp_name, cores, memory):  #NEED TO REALLY TEST
     if not cores and not memory:
         click.echo("You must specify cores or memory")
         sys.exit()
 
-    # DID THIS EXACT PROCEDURE BEFORE...SHOULD BE WRAPPED IN A FUNCTION
-    pool_core_count = 0
-    pool_mem_amount = 0
+    total_cores_mem = get_total_cores_mem(rp_name)
+    pool_core_count = total_cores_mem[0]
+    pool_mem_amount = total_cores_mem[1]
 
-    pool_specs = get_specs(rp_name)
-
-    hosts_file = "{}/{}/hosts".format(ANSIBLE_DIR, rp_name)
-    master_server = get_master(hosts_file)
-
-    for server in pool_specs:
-        if server == master_server:
-            continue
-        this_server_core_count = pool_specs[server]["cores"]
-        this_server_mem_amount = pool_specs[server]["mem"]
-        pool_core_count = pool_core_count + this_server_core_count
-        pool_mem_amount = pool_mem_amount + this_server_mem_amount
-    #############
+    requested_cores = 0
+    requested_mem = 0
+    resize_type = "none"
 
     if cores:
-        if cores > pool_core_count:
-            click.echo("Gathering resources to increase core count...")
-            # THIS IS ALSO DONE ALREADY IN CREATE, AND SHOULD JUST BE A FUNCTION
-            click.echo("Analyzing hardware inventory...")
-            fleet_specs = get_specs("fleet")
-
-            requested_cores = cores - pool_core_count
-            new_cores = 0
-            workers_list = []
-
-            for server in fleet_specs:
-                if new_cores < requested_cores:
-                    this_server_cores = fleet_specs[server]["cores"]
-                    new_cores = new_cores + this_server_cores
-                    workers_list.append(server)
-
-            if requested_cores < new_cores:
-                click.echo(
-                    "There are not enough cores available to create a new resource pool."
-                )
-                click.echo("Total cores available: {}".format(new_cores))
-                sys.exit()
-
-            click.echo(
-                "Resources are available and being migrated into the {} pool...".format(
-                    rp_name
-                )
-            )
-            add_servers_to_pool(rp_name, workers_list)
-
-        elif cores < pool_core_count:
-            click.echo("Removing resources to decrease core count...")
-
-            cores_to_remove = pool_core_count - cores
-
-            cores_staged_to_remove = 0
-            workers_list = []
-
-            for server in pool_specs:
-                if cores_staged_to_remove < cores_to_remove:
-                    this_server_cores = pool_specs[server]["cores"]
-                    cores_staged_to_remove = cores_staged_to_remove + this_server_cores
-                    workers_list.append(server)
-
-            remove_servers_from_pool(rp_name, workers_list)
-        else:
-            click.echo(
-                "Requested core count would not change the current pool resources."
-            )
-
+        requested_cores = cores - pool_core_count
+        if requested_cores > 0:
+            core_resize_type = "increase"
+        elif requested_cores < 0:
+            core_resize_type = "decrease"
+        resize_type = core_resize_type
+        sorter = "cores"
     if memory:
-        if memory > pool_mem_amount:
-            click.echo("Gathering resources to increase memory...")
-        elif memory < pool_mem_amount:
-            click.echo("Removing resources to decrease memory...")
+        requested_mem = memory - pool_mem_amount
+        if requested_mem > 0:
+            mem_resize_type = "increase"
+        elif requested_mem < 0:
+            mem_resize_type = "decrease"
+        resize_type = mem_resize_type
+        sorter = "memory"
+    if cores and memory:
+        if core_resize_type != mem_resize_type:
+            click.echo(
+                "You have requested to increase one type of resource, and decrease the other. \
+                       This feature will not be supported until a future release."
+            )
+            sys.exit()
+        sorter = "both"
+
+    if resize_type == "none":
+        click.echo("You're request is invalid. You specified resize parameters that equal the current state of the pool.")
+        sys.exit()
+    else:
+        if resize_type == "increase":
+            specs = get_specs("fleet")
+        if resize_type == "decrease":
+            specs = get_specs(rp_name)
+            if requested_cores:
+                abs_requested_cores = abs(requested_cores)
+            if requested_mem:
+                abs_requested_mem = abs(requested_mem)
+
+        if sorter == "cores":
+            sorted_specs = sorted(specs.items(), key = lambda tup: (tup[1]["cores"]), reverse=True)
+        if sorter == "memory":
+            sorted_specs = sorted(specs.items(), key = lambda tup: (tup[1]["mem"]), reverse=True)
+        if sorter == "both":
+            sorted_specs = sorted(specs.items(), key = lambda tup: (tup[1]["cores"], tup[1]["mem"]), reverse=True)
+    
+        attempted_core_count = 0
+        attempted_mem_count = 0
+        attempted_servers_list = []
+
+        for i in sorted_specs:
+            if (cores and attempted_core_count < abs_requested_cores) or (memory and attempted_mem_count < abs_requested_mem):
+                server = i[0]
+                specs = i[1]
+                server_cores = specs['cores']
+                server_mem = specs['mem']
+
+                attempted_servers_list.append(server)
+                if cores:
+                    attempted_core_count += server_cores
+                if memory:
+                    attempted_mem_count += server_mem
+
+        if (cores and attempted_core_count < abs_requested_cores) or (memory and attempted_mem_count < abs_requested_mem):
+            if resize_type == "increase": 
+                click.echo("The requested resources are not available:")
+                output_head = "Available" 
+            if resize_type == "decrease":
+                click.echo("The requested decrease would bring the number of resources below 0, consider using the destroy option:") 
+                output_head = "Current"
+            if cores:
+                click.echo("{} cores: {}".format(output_head, attempted_core_count))
+                click.echo("Requested {} in cores: {}".format(resize_type, attempted_core_count))
+            if memory:
+                click.echo("{} memory: {} GB".format(output_head, attempted_mem_count))
+                click.echo("Requested {} in memory: {} GB".format(resize_type, attempted_mem_count))
         else:
-            click.echo("Requested memory would not change the current pool resources.")
+            servers_to_transfer = attempted_servers_list
+            final_core_count = pool_core_count + requested_cores
+            final_mem_amount = pool_mem_amount + requested_mem
+
+            warning = "Your requested {} may have resulted in a higher or lower number of total resources changes than expected.\n \
+                       Final core count for {} pool will be: {}\n \
+                       Final memory amount for {} pool will be {} GB.\n".format(resize_type, rp_name, final_core_count, rp_name, final_mem_amount)
+            
+            if has_user_confirmed(warning):
+                if resize_type == "increase":
+                    add_servers_to_pool(rp_name, servers_to_transfer)  
+                if resize_type == "decrease":
+                    remove_servers_from_pool(rp_name, servers_to_transfer)
 
 
 @cli.command()
 @click.argument("rp_name")
-def destroy(rp_name): # Still need to protect user against wrong rp_name...should make this a function to inject into every main function
-    click.echo(
-        "You are attempting to destroy the {} resource pool.\nThis cannot be undone".format(
-            rp_name
-        )
-    )
-    validation_string = randomString(5)
-    click.echo(
-        "To confirm this action, please type out the following string: {}".format(
-            validation_string
-        )
-    )
+def destroy(rp_name):
+    warning = "You are attempting to destroy the {} resource pool.\nThis cannot be undone".format(rp_name)
 
-    user_validation_string = input("Enter string : ")
-
-    if user_validation_string == validation_string:
+    if has_user_confirmed(warning):
         masters_yaml_file = "{}/{}/masters.yml".format(POOLS_DIR, rp_name)
         workers_yaml_file = "{}/{}/workers.yml".format(POOLS_DIR, rp_name)
 
         click.echo("Destroying cluster...")
         run_playbook("reset", masters_yaml_file)
         run_playbook("reset", workers_yaml_file)
-        
+
         click.echo("Returning servers back to fleet...")
         all_masters_list = get_all_servers_in_yaml_file(masters_yaml_file)
         all_workers_list = get_all_servers_in_yaml_file(workers_yaml_file)
