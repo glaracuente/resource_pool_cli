@@ -140,108 +140,41 @@ def init_pool(rp_name, masters_list, workers_list):
     transfer_servers(workers_list, FLEET_HOSTS_YAML_FILE, workers_yaml_file)
 
 
-def resize_add_servers_to_pool(rp_name, server_list):  # NEED TO WORK FOR MEMORY ALSO # NEED TO SEPARATE THIS INTO JUST PLAYBOOK CALLS, AND UTILITIZE NEW TRANSFER FUNCTION
-    # move servers from fleet yaml to pool yaml
-    click.echo("removing servers from fleet...")
-    with open(FLEET_HOSTS_YAML_FILE, "r") as stream:
-        try:
-            fleet_hosts_yaml = yaml.safe_load(stream)
-            for server in server_list:
-                del fleet_hosts_yaml["all"]["hosts"][server]
-            updated_fleet_hosts_yaml = fleet_hosts_yaml
-        except yaml.YAMLError as exc:
-            click.echo(exc)
-
-    with open(FLEET_HOSTS_YAML_FILE, "w") as f:
-        yaml.dump(updated_fleet_hosts_yaml, f)
-
-    # adding servers to resource pool
-    click.echo("adding servers to {}...".format(rp_name))
-    pool_hosts_yaml_file = "{}/{}/hosts".format(ANSIBLE_DIR, rp_name)
-    with open(pool_hosts_yaml_file, "r") as stream:
-        try:
-            pool_hosts_yaml = yaml.safe_load(stream)
-            workers_dict = pool_hosts_yaml["all"]["children"]["workers"]["hosts"]
-            for worker in server_list:
-                workers_dict[worker] = None
-            pool_hosts_yaml["all"]["children"]["workers"]["hosts"] = workers_dict
-
-            updated_pool_hosts_yaml = pool_hosts_yaml
-        except yaml.YAMLError as exc:
-            click.echo(exc)
-
-    with open(pool_hosts_yaml_file, "w") as f:
-        yaml.dump(updated_pool_hosts_yaml, f)
-
-    # NEED TO RUN INSTALL KUBE STUFF FIRST....NEED TO BREAK OUT INTO SEPERATE PLAYBOOK
-    # NEED..might also be easier to separate workers and master into diff files
-    join_file = "{}/{}/join".format(ANSIBLE_DIR, rp_name)
-    hosts_file = pool_hosts_yaml_file
-    cmd = "ansible-playbook {} -i {}".format(join_file, hosts_file)
+def add_workers_to_pool(rp_name, server_list):
+    pool_yaml_file = "{}/{}/workers.yml".format(POOLS_DIR, rp_name)
+    transfer_servers(server_list, FLEET_HOSTS_YAML_FILE, pool_yaml_file)
+    
+    run_playbook("install_k8s", pool_yaml_file)
+    join_file = "{}/{}/join".format(POOLS_DIR, rp_name)
+    cmd = "ansible-playbook {} -i {}".format(join_file, pool_yaml_file)
     process = subprocess.Popen(
         cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     join_output = str(process.communicate()[0])
 
 
-def resize_return_servers_to_fleet(rp_name, server_list):  # NEED TO SEPARATE THIS INTO JUST PLAYBOOK CALLS, AND UTILITIZE NEW TRANSFER FUNCTION
-    # Need to make this more scalable, not do one node at a time
-    hosts_file = "{}/{}/hosts".format(POOLS_DIR, rp_name)
+def return_workers_to_fleet(rp_name, server_list):
+    pool_yaml_file = "{}/{}/workers.yml".format(POOLS_DIR, rp_name)
+    
     for server in server_list:
         node_name = "ip-{}".format(
             server.replace(".", "-")
-        )  # This may be diff if using hostnames
-        cmd = "ansible-playbook {}/drain -i {} --extra-vars node={}".format(
-            ANSIBLE_DIR, hosts_file, node_name
+        )
+        cmd = "ansible-playbook {}/drain.yml -i {} --extra-vars node={}".format(
+            PLAYBOOK_DIR, pool_yaml_file, node_name
         )
         process = subprocess.Popen(
             cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         drain_output = str(process.communicate()[0])
 
-        cmd = "ansible-playbook -i {} --limit {} destroy".format(hosts_file, server)
+        cmd = "ansible-playbook {}/reset.yml -i {} --limit {}".format(PLAYBOOK_DIR, pool_yaml_file, server)
         process = subprocess.Popen(
             cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-        destroy_output = str(process.communicate()[0])
+        reset_output = str(process.communicate()[0])
 
-    # then move servers from pool to fleet yaml...SHOULD JUST BE FUNCTION TO MOVE FROM ONE YAML TO OTHER
-    # removing servers from pool list
-    click.echo("removing servers from {}...".format(rp_name))
-    pool_hosts_yaml_file = hosts_file
-    with open(pool_hosts_yaml_file, "r") as stream:
-        try:
-            pool_hosts_yaml = yaml.safe_load(stream)
-            for server in server_list:
-                del pool_hosts_yaml["all"]["children"]["workers"]["hosts"][server]
-            updated_pool_hosts_yaml = pool_hosts_yaml
-        except yaml.YAMLError as exc:
-            click.echo(exc)
-
-    with open(pool_hosts_yaml_file, "w") as f:
-        yaml.dump(updated_pool_hosts_yaml, f)
-
-    # adding servers to fleet
-    click.echo("Adding servers to fleet...")
-    with open(FLEET_HOSTS_YAML_FILE, "r") as stream:
-        try:
-            fleet_hosts_yaml = yaml.safe_load(stream)
-            temp_servers_dict = {}
-
-            current_fleet_servers = fleet_hosts_yaml["all"]["hosts"]
-            for server in current_fleet_servers:
-                temp_servers_dict[server] = None
-
-            for server in server_list:
-                temp_servers_dict[server] = None
-
-            fleet_hosts_yaml["all"]["hosts"] = temp_servers_dict
-            updated_fleet_hosts_yaml = fleet_hosts_yaml
-        except yaml.YAMLError as exc:
-            click.echo(exc)
-
-    with open(FLEET_HOSTS_YAML_FILE, "w") as f:
-        yaml.dump(updated_fleet_hosts_yaml, f)
+    transfer_servers(server_list, pool_yaml_file, FLEET_HOSTS_YAML_FILE)
 
 
 def get_specs(rp_name):
@@ -344,7 +277,6 @@ def show(rp_name):
 @click.option("--cores", "-c", type=int)
 @click.option("--memory", "-m", type=int)
 def create(rp_name, cores, memory):
-    verify_rp_name(rp_name)
     if not cores or not memory:
         click.echo("You must specify cores and memory")
         sys.exit()
@@ -547,9 +479,9 @@ def resize(rp_name, cores, memory):  #NEED TO REALLY TEST
             
             if has_user_confirmed(warning):
                 if resize_type == "increase":
-                    add_servers_to_pool(rp_name, servers_to_transfer)  
+                    add_workers_to_pool(rp_name, servers_to_transfer)
                 if resize_type == "decrease":
-                    remove_servers_from_pool(rp_name, servers_to_transfer)
+                    return_workers_to_fleet(rp_name, servers_to_transfer)
 
 
 @cli.command()
