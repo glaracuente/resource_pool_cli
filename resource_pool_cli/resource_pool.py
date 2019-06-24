@@ -145,7 +145,7 @@ def add_workers_to_pool(rp_name, server_list):
     transfer_servers(server_list, FLEET_HOSTS_YAML_FILE, pool_yaml_file)
     
     run_playbook("install_k8s", pool_yaml_file)
-    join_file = "{}/{}/join".format(POOLS_DIR, rp_name)
+    join_file = "{}/{}/join.yml".format(POOLS_DIR, rp_name)
     cmd = "ansible-playbook {} -i {}".format(join_file, pool_yaml_file)
     process = subprocess.Popen(
         cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -154,27 +154,28 @@ def add_workers_to_pool(rp_name, server_list):
 
 
 def return_workers_to_fleet(rp_name, server_list):
-    pool_yaml_file = "{}/{}/workers.yml".format(POOLS_DIR, rp_name)
-    
+    master_yaml_file = "{}/{}/masters.yml".format(POOLS_DIR, rp_name)
+    workers_yaml_file = "{}/{}/workers.yml".format(POOLS_DIR, rp_name)
+
     for server in server_list:
         node_name = "ip-{}".format(
             server.replace(".", "-")
         )
         cmd = "ansible-playbook {}/drain.yml -i {} --extra-vars node={}".format(
-            PLAYBOOK_DIR, pool_yaml_file, node_name
+            PLAYBOOK_DIR, master_yaml_file, node_name
         )
         process = subprocess.Popen(
             cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         drain_output = str(process.communicate()[0])
 
-        cmd = "ansible-playbook {}/reset.yml -i {} --limit {}".format(PLAYBOOK_DIR, pool_yaml_file, server)
+        cmd = "ansible-playbook {}/reset.yml -i {} --limit {}".format(PLAYBOOK_DIR, workers_yaml_file, server)
         process = subprocess.Popen(
             cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         reset_output = str(process.communicate()[0])
 
-    transfer_servers(server_list, pool_yaml_file, FLEET_HOSTS_YAML_FILE)
+    transfer_servers(server_list, workers_yaml_file, FLEET_HOSTS_YAML_FILE)
 
 
 def get_specs(rp_name):
@@ -392,6 +393,8 @@ def resize(rp_name, cores, memory):  #NEED TO REALLY TEST
     requested_cores = 0
     requested_mem = 0
     resize_type = "none"
+    core_resize_type = "none"
+    mem_resize_type = "none"
 
     if cores:
         requested_cores = cores - pool_core_count
@@ -419,24 +422,24 @@ def resize(rp_name, cores, memory):  #NEED TO REALLY TEST
         sorter = "both"
 
     if resize_type == "none":
-        click.echo("You're request is invalid. You specified resize parameters that equal the current state of the pool.")
+        click.echo("Your request is invalid. You specified resize parameters that equal the current state of the pool.")
         sys.exit()
     else:
+        specs = ""
         if resize_type == "increase":
             specs = get_specs("fleet")
         if resize_type == "decrease":
             specs = get_specs(rp_name)
-            if requested_cores:
-                abs_requested_cores = abs(requested_cores)
-            if requested_mem:
-                abs_requested_mem = abs(requested_mem)
+          
+        abs_requested_cores = abs(requested_cores)    
+        abs_requested_mem = abs(requested_mem)
 
         if sorter == "cores":
-            sorted_specs = sorted(specs.items(), key = lambda tup: (tup[1]["cores"]), reverse=True)
+            sorted_specs = sorted(specs.items(), key = lambda tup: (tup[1]['cores']), reverse=True)
         if sorter == "memory":
-            sorted_specs = sorted(specs.items(), key = lambda tup: (tup[1]["mem"]), reverse=True)
+            sorted_specs = sorted(specs.items(), key = lambda tup: (tup[1]['mem']), reverse=True)
         if sorter == "both":
-            sorted_specs = sorted(specs.items(), key = lambda tup: (tup[1]["cores"], tup[1]["mem"]), reverse=True)
+            sorted_specs = sorted(specs.items(), key = lambda tup: (tup[1]['cores'], tup[1]['mem']), reverse=True)
     
         attempted_core_count = 0
         attempted_mem_count = 0
@@ -450,10 +453,8 @@ def resize(rp_name, cores, memory):  #NEED TO REALLY TEST
                 server_mem = specs['mem']
 
                 attempted_servers_list.append(server)
-                if cores:
-                    attempted_core_count += server_cores
-                if memory:
-                    attempted_mem_count += server_mem
+                attempted_core_count += server_cores
+                attempted_mem_count += server_mem
 
         if (cores and attempted_core_count < abs_requested_cores) or (memory and attempted_mem_count < abs_requested_mem):
             if resize_type == "increase": 
@@ -470,10 +471,14 @@ def resize(rp_name, cores, memory):  #NEED TO REALLY TEST
                 click.echo("Requested {} in memory: {} GB".format(resize_type, attempted_mem_count))
         else:
             servers_to_transfer = attempted_servers_list
-            final_core_count = pool_core_count + requested_cores
-            final_mem_amount = pool_mem_amount + requested_mem
+            if resize_type == "increase": 
+                final_core_count = pool_core_count + attempted_core_count
+                final_mem_amount = pool_mem_amount + attempted_mem_count
+            if resize_type == "decrease": 
+                final_core_count = pool_core_count - attempted_core_count
+                final_mem_amount = pool_mem_amount - attempted_mem_count
 
-            warning = "Your requested {} may have resulted in a higher or lower number of total resources changes than expected.\n \
+            warning = "Your requested {} may have resulted in a higher or lower number of total resources changes than expected.\n\n \
                        Final core count for {} pool will be: {}\n \
                        Final memory amount for {} pool will be {} GB.\n".format(resize_type, rp_name, final_core_count, rp_name, final_mem_amount)
             
