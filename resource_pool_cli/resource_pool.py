@@ -373,7 +373,10 @@ def create(rp_name, cores, memory):
         join_cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     join_cmd_output = str(process.communicate()[0])
-    print(join_cmd_output)
+    
+    time.sleep(15)
+    click.echo("Deploying cluster dashboard...")
+    run_playbook("setup_k8s_dashboard", masters_file)
 
 
 @cli.command()
