@@ -11,7 +11,7 @@ DIR_RESOURCE_POOL="/etc/resource_pool"
 DIR_ANSIBLE="${DIR_RESOURCE_POOL}/ansible"
 DIR_ANSIBLE_PLAYBOOKS="${DIR_ANSIBLE}/playbooks"
 DIR_POOL_TEMPLATE="${DIR_ANSIBLE}/pool_template"
-GIT_BASE_URL="https://raw.githubusercontent.com/glaracuente/resourcer/${VERSION}" #NEED TO CHANGE ALL DEVELOP TO MASTER
+GIT_BASE_URL="https://raw.githubusercontent.com/glaracuente/resource_pool_cli/${VERSION}" #NEED TO CHANGE ALL DEVELOP TO MASTER
 
 mkdir "${DIR_RESOURCE_POOL}"
 mkdir "${DIR_ANSIBLE}"
@@ -19,7 +19,7 @@ mkdir "${DIR_ANSIBLE}/keys"
 
 mkdir "${DIR_ANSIBLE_PLAYBOOKS}"
 URL_ANSIBLE_PLAYBOOKS="${GIT_BASE_URL}/ansible/playbooks"
-for playbook in drain reset install_k8s setup_master; do
+for playbook in drain reset install_k8s setup_master setup_k8s_dashboard; do
     wget "${URL_ANSIBLE_PLAYBOOKS}/${playbook}.yml" -O "${DIR_ANSIBLE_PLAYBOOKS}/${playbook}.yml"
 done
 

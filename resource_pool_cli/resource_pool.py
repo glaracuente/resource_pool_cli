@@ -52,7 +52,7 @@ def run_playbook(playbook_name, hosts_yaml_file):
         playbook_cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     playbook_cmd_output = str(process.communicate()[0])
-    #print(playbook_cmd_output)
+   
     return playbook_cmd_output
 
 

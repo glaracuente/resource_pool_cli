@@ -56,11 +56,9 @@ RUN set -x && \
     apk add wget && \
     apk add vim && \
     mkdir /etc/resource_pool_cli/ && \
-    wget https://raw.githubusercontent.com/glaracuente/resourcer/develop/resource_pool_cli/resource_pool.py -O /etc/resource_pool_cli/resource_pool.py
+    wget https://raw.githubusercontent.com/glaracuente/resource_pool_cli/develop/resource_pool_cli/resource_pool.py -O /etc/resource_pool_cli/resource_pool.py
 # change to master for final release
-# also better to install as pip pkg
 
-#trim what is not needed below
 ENV ANSIBLE_GATHERING smart
 ENV ANSIBLE_HOST_KEY_CHECKING false
 ENV ANSIBLE_RETRY_FILES_ENABLED false
@@ -68,9 +66,7 @@ ENV ANSIBLE_ROLES_PATH /ansible/playbooks/roles
 ENV ANSIBLE_SSH_PIPELINING True
 ENV PYTHONPATH /ansible/lib
 ENV PATH /ansible/bin:$PATH
-ENV ANSIBLE_LIBRARY /ansible/library
-WORKDIR /ansible/playbooks
-#
+WORKDIR /etc/resource_pool_cli/
 
 RUN chmod 755 /etc/resource_pool_cli/resource_pool.py
 ENTRYPOINT ["/etc/resource_pool_cli/resource_pool.py"]

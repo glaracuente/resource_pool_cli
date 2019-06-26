@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 variable "num_of_resource_worker_servers" {
-  default = 5
+  default = 1
 }
 
 resource "aws_instance" "captain" {
