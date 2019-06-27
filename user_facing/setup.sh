@@ -47,6 +47,6 @@ chmod 755 "${DIR_RESOURCE_POOL}/resource_pool.sh"
 
 echo "The resource_pool utility is now available at /etc/resource_pool/resource_pool.sh. Before using, you should:\n"
 
-echo "1) Add the contents of /etc/resource_pool/ansible/keys/id_rsa.pub to /root/authorized_keys all servers you would like to use for this set of infrastructure."
-echo "2) Add IP addresses of these servers to /var/tmp/ansible/fleet/hosts"
+echo "1) Add the contents of /etc/resource_pool/ansible/keys/id_rsa.pub to /root/.ssh/authorized_keys to all servers you would like to use for this set of infrastructure."
+echo "2) Add the IP addresses of these servers to /etc/resource_pool/ansible/fleet/hosts"
 # NEED TO ACTUALLY LET THEM PUT IT IN CSV OR NEWLINE FORMAT, AND GIVE THEM SCRIPT TO ADD TO FLEET_HOSTS FILE IN PROPER YAML...server_transfer.sh
