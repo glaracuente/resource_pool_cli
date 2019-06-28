@@ -56,9 +56,13 @@ RUN set -x && \
     echo "==> Adding resource_pool cli..."  && \
     pip3 install click prettytable && \
     mkdir /etc/resource_pool_cli/ && \
-    wget https://raw.githubusercontent.com/glaracuente/resource_pool_cli/master/resource_pool_cli/resource_pool.py \
-    -O /etc/resource_pool_cli/resource_pool.py && \
-    chmod 755 /etc/resource_pool_cli/resource_pool.py
+    wget https://raw.githubusercontent.com/glaracuente/resource_pool_cli/master/resource_pool_cli/resource_pool_cli.py \
+    -O /etc/resource_pool_cli/resource_pool_cli.py && \
+    wget https://raw.githubusercontent.com/glaracuente/resource_pool_cli/master/resource_pool_cli/pool_helpers.py \
+    -O /etc/resource_pool_cli/pool_helpers.py && \
+    chmod 755 /etc/resource_pool_cli/resource_pool_cli.py && \
+    chmod 755 /etc/resource_pool_cli/pool_helpers.py
 
-ENTRYPOINT ["/etc/resource_pool_cli/resource_pool.py"]
+
+ENTRYPOINT ["/etc/resource_pool_cli/resource_pool_cli.py"]
 
