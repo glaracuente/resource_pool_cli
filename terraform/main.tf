@@ -2,10 +2,6 @@ provider "aws" {
   region = "us-east-1"
 }
 
-variable "num_of_resource_worker_servers" {
-  default = 1
-}
-
 resource "aws_instance" "captain" {
   ami           = "ami-01d9d5f6cecc31f85"
   instance_type = "t2.micro"
@@ -26,25 +22,25 @@ resource "aws_instance" "captain" {
   }
 }
 
-resource "aws_instance" "resource_server_master" {
+resource "aws_instance" "resource_server_medium" {
   ami           = "ami-01d9d5f6cecc31f85"
   instance_type = "t2.medium"
-  count         = 2
+  count         = 6
   key_name      = "grlaracuente-IAM"
 
   tags = {
-    Name = "resource_server_master"
+    Name = "resource_server_medium"
   }
 }
 
-resource "aws_instance" "resource_server_worker" {
+resource "aws_instance" "resource_server_micro" {
   ami           = "ami-01d9d5f6cecc31f85"
   instance_type = "t2.micro"
-  count         = var.num_of_resource_worker_servers
+  count         = 6
   key_name      = "grlaracuente-IAM"
 
   tags = {
-    Name = "resource_server_worker"
+    Name = "resource_server_micro"
   }
 }
 
@@ -52,11 +48,11 @@ output "captain_public_ip" {
   value = ["${aws_instance.captain.public_ip}"]
 }
 
-output "resource_server_master_public_ips" {
+output "resource_server_medium_public_ips" {
   value = ["${aws_instance.resource_server_master.*.public_ip}"]
 }
 
-output "resource_server_worker_public_ips" {
+output "resource_server_micro_public_ips" {
   value = ["${aws_instance.resource_server_worker.*.public_ip}"]
 }
 
