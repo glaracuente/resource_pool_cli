@@ -18,5 +18,5 @@
     - name: apply dashboard yamls
       shell: |
         export KUBECONFIG=/etc/kubernetes/admin.conf
-        kubectl apply -f https://raw.githubusercontent.com/glaracuente/resource_pool_cli/develop/k8s_dashboard/kubernetes-dashboard.yaml
-        kubectl create -f https://raw.githubusercontent.com/glaracuente/resource_pool_cli/develop/k8s_dashboard/dashboard-admin.yaml
+        kubectl apply -f https://raw.githubusercontent.com/glaracuente/resource_pool_cli/master/k8s_dashboard/kubernetes-dashboard.yaml
+        kubectl create -f https://raw.githubusercontent.com/glaracuente/resource_pool_cli/master/k8s_dashboard/dashboard-admin.yaml
