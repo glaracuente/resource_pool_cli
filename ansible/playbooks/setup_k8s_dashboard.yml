@@ -14,27 +14,9 @@
         export KUBECONFIG=/etc/kubernetes/admin.conf
         kubectl -n kube-system create secret generic kubernetes-dashboard-certs --from-file=/root/certs
       args:
-        chdir: /root/certs
-    - name: Download kube dashboard yaml
-      get_url:
-        url: https://raw.githubusercontent.com/glaracuente/resource_pool_cli/develop/k8s_dashboard/kubernetes-dashboard.yaml
-        dest: /var/tmp/kubernetes-dashboard.yaml 
-        mode: '0440'
-    - name: Download dashboard admin yaml
-      get_url:
-        url: https://raw.githubusercontent.com/glaracuente/resource_pool_cli/develop/k8s_dashboard/dashboard-admin.yaml
-        dest: /var/tmp/dashboard-admin.yaml 
-        mode: '0440'
+        chdir: /root/certs    
     - name: apply dashboard yamls
       shell: |
         export KUBECONFIG=/etc/kubernetes/admin.conf
-        kubectl apply -f /var/tmp/kubernetes-dashboard.yaml 
-        kubectl create -f /var/tmp/dashboard-admin.yaml 
-    - name: Delete kube dashboard yaml
-      file:
-        path: /var/tmp/kubernetes-dashboard.yaml 
-        state: absent
-    - name: Delete dashboard admin yaml
-      file:
-        path: /var/tmp/dashboard-admin.yaml 
-        state: absent
+        kubectl apply -f https://raw.githubusercontent.com/glaracuente/resource_pool_cli/develop/k8s_dashboard/kubernetes-dashboard.yaml
+        kubectl create -f https://raw.githubusercontent.com/glaracuente/resource_pool_cli/develop/k8s_dashboard/dashboard-admin.yaml
