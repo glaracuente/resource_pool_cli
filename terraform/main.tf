@@ -49,10 +49,10 @@ output "captain_public_ip" {
 }
 
 output "resource_server_medium_public_ips" {
-  value = ["${aws_instance.resource_server_master.*.public_ip}"]
+  value = ["${aws_instance.resource_server_medium.*.public_ip}"]
 }
 
 output "resource_server_micro_public_ips" {
-  value = ["${aws_instance.resource_server_worker.*.public_ip}"]
+  value = ["${aws_instance.resource_server_micro.*.public_ip}"]
 }
 
