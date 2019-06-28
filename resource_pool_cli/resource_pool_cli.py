@@ -111,7 +111,7 @@ def create(rp_name, cores, memory):
         0
     ]
 
-    # Dynamically creating unique join file for this pool, using the token/hash
+    # Dynamically creating unique join playbook for this pool, using the token/hash
     # that we got from the master.
     join_file = "{}/{}/join.yml".format(POOLS_DIR, rp_name)
     with fileinput.FileInput(join_file, inplace=True) as file:
@@ -177,7 +177,7 @@ def resize(rp_name, cores, memory):
 
     # Check whether the user is trying to increase or decrease the cpu/mem
     # If they are trying to increase one and decrease the other, we cannot
-    # continue, because this is a more advanced algorithm that will be
+    # continue because this is requires an advanced algorithm that will be
     # released in a future version.
     if cores:
         requested_cores = cores - pool_core_count
@@ -222,7 +222,7 @@ def resize(rp_name, cores, memory):
         abs_requested_cores = abs(requested_cores)
         abs_requested_mem = abs(requested_mem)
 
-        # Since a physical server will usually have more GB of ram, than # of cores, we sort
+        # Since a physical server will usually have more GB of ram than # of cores, we sort
         # by cores first, when possible. My thinking here was the case where a user wants to
         # reduce a pool by 24 cores. Let's say we have servers with 12 or 24 cores, and 256 GB
         # of ram. It is better to removes 1x24 cores and 256 GB of ram, instead of 2x12 cores
@@ -246,7 +246,7 @@ def resize(rp_name, cores, memory):
         attempted_mem_count = 0
         attempted_servers_list = []
 
-        # Build a list of servers to meet the request
+        # Try to build a list of servers to meet the request
         for i in sorted_specs:
             if (cores and attempted_core_count < abs_requested_cores) or (
                 memory and attempted_mem_count < abs_requested_mem
@@ -296,7 +296,7 @@ def resize(rp_name, cores, memory):
                 final_mem_amount = pool_mem_amount - attempted_mem_count
 
             # Since cores and GB of memory are coupled together in real physical servers, we can't just add/delete exact numbers
-            # of resources. Therefore, the actual final specs may differ, and this can be very destructive when downgrading a pool.
+            # of resources. Therefore, the actual final specs may differ, and this can be very destructive when downsizing a pool.
             # This is why we must warn the user here and get their confirmation.
             warning = "Your requested {} may have resulted in a higher or lower number of total resources changes than expected.\n\n \
                        Final core count for {} pool will be: {}\n \

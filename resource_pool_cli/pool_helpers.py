@@ -18,6 +18,14 @@ POOLS_DIR = "{}/pools".format(ANSIBLE_DIR)
 FLEET_HOSTS_YAML_FILE = "{}/pools/fleet/hosts.yml".format(ANSIBLE_DIR)
 
 
+def randomString(stringLength=10):
+    """
+    Generate a random string of fixed length
+    """
+    letters = string.ascii_lowercase
+    return "".join(random.choice(letters) for i in range(stringLength))
+
+
 def verify_rp_name(rp_name):
     """
     This function verifies that a resource pool directory,
@@ -42,12 +50,15 @@ def init_pool_dir(rp_name):
     shutil.copytree(TEMPLATE_DIR, "{}/{}".format(POOLS_DIR, rp_name))
 
 
-def randomString(stringLength=10):
+def init_pool(rp_name, masters_list, workers_list):
     """
-    Generate a random string of fixed length
+    Initial transfer of servers into a new pool
     """
-    letters = string.ascii_lowercase
-    return "".join(random.choice(letters) for i in range(stringLength))
+    masters_yaml_file = "{}/{}/masters.yml".format(POOLS_DIR, rp_name)
+    transfer_servers(masters_list, FLEET_HOSTS_YAML_FILE, masters_yaml_file)
+
+    workers_yaml_file = "{}/{}/workers.yml".format(POOLS_DIR, rp_name)
+    transfer_servers(workers_list, FLEET_HOSTS_YAML_FILE, workers_yaml_file)
 
 
 def run_playbook(playbook_name, hosts_yaml_file):
@@ -133,7 +144,7 @@ def has_user_confirmed(warning):
 
 def get_all_servers_in_yaml_file(yaml_file):
     """
-    Quick extraction of all servers in a hosts yaml file
+    Returns a list of all servers in a given hosts yaml file
     """
     all_servers_in_yaml_file = []
 
@@ -150,73 +161,6 @@ def get_all_servers_in_yaml_file(yaml_file):
             click.echo(exc)
 
     return all_servers_in_yaml_file
-
-
-def init_pool(rp_name, masters_list, workers_list):
-    """
-    Initial transfer of servers into a new pool
-    """
-    masters_yaml_file = "{}/{}/masters.yml".format(POOLS_DIR, rp_name)
-    transfer_servers(masters_list, FLEET_HOSTS_YAML_FILE, masters_yaml_file)
-
-    workers_yaml_file = "{}/{}/workers.yml".format(POOLS_DIR, rp_name)
-    transfer_servers(workers_list, FLEET_HOSTS_YAML_FILE, workers_yaml_file)
-
-
-def add_workers_to_pool(rp_name, server_list):
-    """
-    1) Adds new worker nodes to an existing pool. 
-    2) Makes sure kubernetes is installed on each new server.
-    3) Joins them to the master as worker nodes
-    """
-    pool_yaml_file = "{}/{}/workers.yml".format(POOLS_DIR, rp_name)
-    transfer_servers(server_list, FLEET_HOSTS_YAML_FILE, pool_yaml_file)
-
-    run_playbook("install_k8s", pool_yaml_file)
-
-    # The reason the run_playbook function isn't just called here is
-    # because this is a unique join playbook specific to this pool.
-    join_file = "{}/{}/join.yml".format(POOLS_DIR, rp_name)
-    cmd = "ansible-playbook {} -i {}".format(join_file, pool_yaml_file)
-
-    process = subprocess.Popen(
-        cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    join_output = str(process.communicate()[0])
-
-
-def return_workers_to_fleet(rp_name, server_list):
-    """
-    1) Drains nodes and deletes them from the k8s cluster (done from master).
-    2) Resets kubeadm state on the nodes (done from nodes themselves).
-    3) Moves servers back into the fleet.
-
-    run_playbook() is not used in this block of code because these playbook
-    commands utilize extra arguments such as --extra-vars and --limit, which
-    are needed here, but not widely used in the rest of the code. 
-    """
-    master_yaml_file = "{}/{}/masters.yml".format(POOLS_DIR, rp_name)
-    workers_yaml_file = "{}/{}/workers.yml".format(POOLS_DIR, rp_name)
-
-    for server in server_list:
-        node_name = "ip-{}".format(server.replace(".", "-"))
-        cmd = "ansible-playbook {}/drain.yml -i {} --extra-vars node={}".format(
-            PLAYBOOK_DIR, master_yaml_file, node_name
-        )
-        process = subprocess.Popen(
-            cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        drain_output = str(process.communicate()[0])
-
-        cmd = "ansible-playbook {}/reset.yml -i {} --limit {}".format(
-            PLAYBOOK_DIR, workers_yaml_file, server
-        )
-        process = subprocess.Popen(
-            cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        reset_output = str(process.communicate()[0])
-
-    transfer_servers(server_list, workers_yaml_file, FLEET_HOSTS_YAML_FILE)
 
 
 def get_specs(rp_name):
@@ -272,9 +216,9 @@ def get_specs(rp_name):
 
 def get_total_cores_mem(rp_name):
     """
-    While get_specs() returns a dictionary, it is also common that
+    While get_specs() returns detailed pool specs, it is also common that
     we want to know the total amount of cores and memory in a pool.
-    This function returns those 2 totals.
+    This function returns those 2 totals in a list.
     """
     pool_core_count = 0
     pool_mem_amount = 0
@@ -310,3 +254,59 @@ def get_pool_info_table(rp_name):
     output_table.add_row(["CPU Cores", pool_core_count])
     output_table.add_row(["GB of RAM", pool_mem_amount])
     return output_table
+
+
+def add_workers_to_pool(rp_name, server_list):
+    """
+    1) Adds new servers to an existing pool. 
+    2) Makes sure kubernetes is installed on each new server.
+    3) Joins them to the master as worker nodes
+    """
+    pool_yaml_file = "{}/{}/workers.yml".format(POOLS_DIR, rp_name)
+    transfer_servers(server_list, FLEET_HOSTS_YAML_FILE, pool_yaml_file)
+
+    run_playbook("install_k8s", pool_yaml_file)
+
+    # The reason the run_playbook function isn't just called here is
+    # because this is a unique join playbook specific to this pool.
+    join_file = "{}/{}/join.yml".format(POOLS_DIR, rp_name)
+    cmd = "ansible-playbook {} -i {}".format(join_file, pool_yaml_file)
+
+    process = subprocess.Popen(
+        cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    join_output = str(process.communicate()[0])
+
+
+def return_workers_to_fleet(rp_name, server_list):
+    """
+    1) Drains nodes and deletes them from the k8s cluster (done from master).
+    2) Resets kubeadm state on the nodes (done from nodes themselves).
+    3) Moves servers back into the fleet.
+
+    run_playbook() is not used in this block of code because these playbook
+    commands utilize extra arguments such as --extra-vars and --limit, which
+    are needed here, but not widely used in the rest of the code. 
+    """
+    master_yaml_file = "{}/{}/masters.yml".format(POOLS_DIR, rp_name)
+    workers_yaml_file = "{}/{}/workers.yml".format(POOLS_DIR, rp_name)
+
+    for server in server_list:
+        node_name = "ip-{}".format(server.replace(".", "-"))
+        cmd = "ansible-playbook {}/drain.yml -i {} --extra-vars node={}".format(
+            PLAYBOOK_DIR, master_yaml_file, node_name
+        )
+        process = subprocess.Popen(
+            cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        drain_output = str(process.communicate()[0])
+
+        cmd = "ansible-playbook {}/reset.yml -i {} --limit {}".format(
+            PLAYBOOK_DIR, workers_yaml_file, server
+        )
+        process = subprocess.Popen(
+            cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        reset_output = str(process.communicate()[0])
+
+    transfer_servers(server_list, workers_yaml_file, FLEET_HOSTS_YAML_FILE)
