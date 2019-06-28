@@ -17,8 +17,8 @@
         - software-properties-common
     - name: add docker repo
       shell: |
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - # get_url
-        add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" # apt_repository             
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"             
     - name: apt-get update
       apt:
         update_cache: yes         
@@ -32,8 +32,8 @@
         - containerd.io
     - name: add k8s repo
       shell: |
-        curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - # get_url
-        echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list # apt_repository ?
+        curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+        echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
     - name: apt-get update
       apt:
         update_cache: yes

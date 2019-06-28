@@ -1,0 +1,22 @@
+---
+- hosts: all
+  tasks:
+    - name: Create certs directory
+      file:
+        path: /root/certs
+        state: directory
+    - name: Create dashboard certs and secret
+      shell: |
+        openssl genrsa -out dashboard.key 2048
+        openssl rsa -in dashboard.key -out dashboard.key
+        openssl req -sha256 -new -key dashboard.key -out dashboard.csr -subj '/CN=localhost'
+        openssl x509 -req -sha256 -days 365 -in dashboard.csr -signkey dashboard.key -out dashboard.crt
+        export KUBECONFIG=/etc/kubernetes/admin.conf
+        kubectl -n kube-system create secret generic kubernetes-dashboard-certs --from-file=/root/certs
+      args:
+        chdir: /root/certs    
+    - name: apply dashboard yamls
+      shell: |
+        export KUBECONFIG=/etc/kubernetes/admin.conf
+        kubectl apply -f https://raw.githubusercontent.com/glaracuente/resource_pool_cli/master/k8s_dashboard/kubernetes-dashboard.yaml
+        kubectl create -f https://raw.githubusercontent.com/glaracuente/resource_pool_cli/master/k8s_dashboard/dashboard-admin.yaml
