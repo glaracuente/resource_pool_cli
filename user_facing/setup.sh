@@ -45,4 +45,4 @@ echo "The resource_pool utility is now available at /etc/resource_pool/resource_
 echo ""
 echo "1) Add the contents of /etc/resource_pool/ansible/keys/id_rsa.pub to /root/.ssh/authorized_keys on all servers you would like to use for this set of infrastructure."
 echo ""
-echo "2) Add the IP addresses of these servers to /etc/resource_pool/ansible/pools/fleet/hosts"
+echo "2) Add the IP addresses of these servers to /etc/resource_pool/ansible/pools/fleet/hosts.yml"
