@@ -4,7 +4,7 @@ __Resource Pool CLI__ by Gerardo Laracuente
 
 This is a cli tool written in Python for automatically creating, resizing, and destroying Kubernetes clusters. It regards these clusters as resource pools that can be described in terms of cores and memory.
 
-This was my DevOps fellowship project as part of the Insight Data Science Summer 2019 cohort. 
+This was my DevOps fellowship project as part of the Insight Data Science Summer 2019 NYC cohort. 
 
 *I am not the original author of then files inside of the "docker" and "k8s_dashboard" directories. I merely edited them to suit the needs of this project. All other files were written by me from scratch. 
 
