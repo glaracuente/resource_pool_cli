@@ -19,7 +19,8 @@ INSERT DIAGRAM HERE
 
 ## Demo:   
 
-<iframe width="560" height="315" src="https://youtu.be/WlnvPHdo3xs" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+[![Resource Pool CLI](http://img.youtube.com/vi/WlnvPHdo3xs/0.jpg)](http://www.youtube.com/watch?v=WlnvPHdo3xs "Resource Pool CLI")
+
 
 ## Project Challenges:
 
