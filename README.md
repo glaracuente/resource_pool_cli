@@ -19,9 +19,13 @@ NEED TO INSERT ADVANTAGES PICS HERE
 
 ## What's going on under the hood?:
 
-It uses Ansible to take actions on a fleet of servers. Ansible and Python are wrapped 
+Python CLI > Ansible > Servers = Kubernetes Clusters
 
-Python CLI > Ansible > Kubernetes Clusters
+The CLI is written in Python, but is powered by Ansible. Ansible playbooks contain the instructions to create a new kubernetes clusters, add nodes, drain and delete nodes, etc. 
+
+The archtecture diagram shows what this would look like in the real world in the top half. The user would just need to have one server running docker. With one simple bash script, everything will be set up for them. This server becomes the "captain" server, which runs the CLI alongside Ansible inside of a docker container. 
+
+The bottom half shows what was used for development, and you can try this out yourself. I used Terraform to spin up mock "data centers" in AWS. These are just EC2 instances running Ubuntu 16.04. I run the setup.sh script on one of them, and then use that "captain" instance to create k8s clusters out of the others. 
 
 <img src= img/Arch.png>
 
@@ -32,15 +36,8 @@ Python CLI > Ansible > Kubernetes Clusters
 
 ## Project Challenges:
 
-NEED TO LIST CHALLENGES HERE
+<<<<<<<<<<<<<<< NEED TO LIST CHALLENGES HERE >>>>>>>>>>>>>>>
 
 ## Future Work:
 
-Auto-Healing
-
-HA
-
-Alerts
-
-Metal LB
-Stateful Apps
+<<<<<<<<<<<<<<< NEED TO LIST FUTURE WORK HERE >>>>>>>>>>>>>>>
