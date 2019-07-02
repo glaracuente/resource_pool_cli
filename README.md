@@ -19,7 +19,7 @@ INSERT DIAGRAM HERE
 
 ## Demo:   
 
-INSERT VIDEO HERE
+<video src="https://www.youtube.com/watch?v=6BYq6hNhceI&t=916s" width="320" height="200" controls preload></video>
 
 ## Project Challenges:
 
