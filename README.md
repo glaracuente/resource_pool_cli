@@ -19,7 +19,7 @@ INSERT DIAGRAM HERE
 
 ## Demo:   
 
-<video src="https://www.youtube.com/watch?v=6BYq6hNhceI&t=916s" width="320" height="200" controls preload></video>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/6BYq6hNhceI" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ## Project Challenges:
 
