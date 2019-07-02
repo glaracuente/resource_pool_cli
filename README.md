@@ -23,8 +23,7 @@ It uses Ansible to take actions on a fleet of servers. Ansible and Python are wr
 
 Python CLI > Ansible > Kubernetes Clusters
 
-
-NEED TO INSERT ARCH PICS HERE
+<img src= img/Arch.png>
 
 ## Demo:   
 
