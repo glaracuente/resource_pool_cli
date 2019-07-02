@@ -1,4 +1,4 @@
-Resource Pool CLI by Gerardo Laracuente
+__Resource Pool CLI__ by Gerardo Laracuente
 
 ## Project Summary:
 
