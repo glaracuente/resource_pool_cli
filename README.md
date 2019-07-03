@@ -36,7 +36,11 @@ The bottom half shows what was used for development, and you can try this out yo
 
 ## Project Challenges:
 
-<<<<<<<<<<<<<<< NEED TO LIST CHALLENGES HERE >>>>>>>>>>>>>>>
+__Unique token/hash per cluster__ - Each k8s clusters requires a unique token and hash for a worker node to join it. To address this, I use ansible to get this token/hash from the master, and then dynamically create a "join" playbook that is unique to each cluster. 
+
+__Resizing clusters__ - A user may ask to decrease a pool by 24 cores, but the reality with bare-metal servers is that some servers can have 24 cores and 32 GB of ram, while other have 12 cores and 256 GB of ram. In most cases, the GB of ram will be higher than the core count, so I chose to sort the available servers in decreasing order or core count, unless the user is specifically looking for a large memory change. The user is also warned about the potential change before changes occur. 
+
+__Total lifeycle of servers__ - During the lifecycle of a server, it can be a k8s master, worker node, or generally available server in the fleet of hardware. With that in mind, I made sure that everytime a server is returned to the fleet, all of the k8s configs are reset, and before a server try to join a k8s cluster, I check that it has the proper packages installed. I began the project using INI files for the ansible inventory, but since I need to transer servers so often, I found that YAML was a better format, and I had to refactor my code to handle this change. 
 
 ## Future Work:
 
