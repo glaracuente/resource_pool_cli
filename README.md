@@ -27,7 +27,7 @@ In the top half of the archtecture diagram, I show what this would look like in 
 
 The bottom half shows what was used for development, and you can try this out yourself. I used Terraform to spin up mock "data centers" in AWS. These are just EC2 instances running Ubuntu 16.04. I run the setup.sh script on one of them, and then use that "captain" instance to create k8s clusters out of the others. 
 
-<img src= img/Arch.png>
+<img src= img/Arch.png width="600" height="400" >
 
 ## Demo:   
 
