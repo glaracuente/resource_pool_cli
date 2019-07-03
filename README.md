@@ -29,7 +29,7 @@ The CLI is written in Python, but is powered by Ansible. Ansible playbooks conta
 <img src= img/arch.png width="700" height="400">
 </p>
 
-In the top half of the archtecture diagram, I show what this would look like in the real world. The user would just need to have one server running docker. After running one simple bash script, everything will be set up for them. This server becomes the "captain" server, which runs the CLI alongside Ansible inside of a docker container. 
+In the top half of the archtecture diagram, I show what this would look like in the real world. The user would just need to have one server running docker. After running one simple bash script, everything will be set up for them. This server becomes the __captain__ server, which runs the CLI alongside Ansible inside of a docker container. 
 
 The bottom half shows what was used for development, and you can try this out yourself. I used Terraform to spin up mock "data centers" in AWS. These are just EC2 instances running Ubuntu 16.04. I run the setup.sh script on one of them, and then use that "captain" instance to create k8s clusters out of the others. 
 
@@ -37,6 +37,10 @@ The bottom half shows what was used for development, and you can try this out yo
 
 [![Resource Pool CLI](http://img.youtube.com/vi/WlnvPHdo3xs/0.jpg)](http://www.youtube.com/watch?v=WlnvPHdo3xs "Resource Pool CLI")
 
+Want to try it out? 
+- All you need is the __setup.sh__ file from the __user_facing__ directory. 
+- The main/__captain__ server needs to to be run have docker installed before running the setup script. 
+- This entire project have only been tested on Ubuntu 16.04. 
 
 ## Project Challenges:
 
