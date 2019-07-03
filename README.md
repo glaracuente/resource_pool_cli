@@ -40,4 +40,8 @@ The bottom half shows what was used for development, and you can try this out yo
 
 ## Future Work:
 
-<<<<<<<<<<<<<<< NEED TO LIST FUTURE WORK HERE >>>>>>>>>>>>>>>
+__Auto Healing__ - A scheduler needs to keep track of the desired resource counts for each pool. When a server goes down, the scheduler should notice the decrease in resources, and automatically replace the serve and notify an admin, create a ticket, etc. 
+
+__HA of Masters__ - The master of each cluster is currently a point of failure. The master should be a set of servers set up for HA.
+
+__Load Balancer__ - Since this should be able to run on baremetal, "Metal LB" needs to be added to the cluster in order to expose services properly. NodePort is currently used, but this is not a production ready method. 
