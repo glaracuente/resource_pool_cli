@@ -15,7 +15,7 @@ Whether it's due to costs or regulations, not everyone can run in the cloud, but
 
 We need to stop babysitting individual servers, and begin to think in terms of total cores and memory. My command line tool enables a team to request their resources in these terms, and all the heavy lifting is handled for them. Within minutes, they will have a Kubernetes cluster to deploy their services on, which they can also resize as needed. 
 
-<<<<<<<<<<<<<<< NEED TO INSERT ADVANTAGES PICS HERE >>>>>>>>>>>>>>>
+<img src= img/why.png width="600" height="400" >
 
 ## What's going on under the hood?:
 
@@ -23,7 +23,7 @@ Python CLI > Ansible > Servers = Kubernetes Clusters
 
 The CLI is written in Python, but is powered by Ansible. Ansible playbooks contain the instructions to create new kubernetes clusters, add nodes, drain and delete nodes, etc. 
 
-<img src= img/Arch.png width="600" height="400" >
+<img src= img/arch.png width="600" height="400" >
 
 In the top half of the archtecture diagram, I show what this would look like in the real world. The user would just need to have one server running docker. After running one simple bash script, everything will be set up for them. This server becomes the "captain" server, which runs the CLI alongside Ansible inside of a docker container. 
 
