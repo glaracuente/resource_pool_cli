@@ -29,9 +29,9 @@ The CLI is written in Python, but is powered by Ansible. Ansible playbooks conta
 <img src= img/arch.png width="700" height="400">
 </p>
 
-In the top half of the archtecture diagram, I show what this would look like in the real world. The user would just need to have one server running docker. After running one simple bash script, everything will be set up for them. This server becomes the __captain__ server, which runs the CLI alongside Ansible inside of a docker container. 
+In the top half of the archtecture diagram, I show what this would look like in the real world. The user would just need to have one server running docker. After running one simple bash script, everything will be set up for them. This server runs the CLI alongside Ansible inside of a docker container. 
 
-The bottom half shows what was used for development, and you can try this out yourself. I used Terraform to spin up mock "data centers" in AWS. These are just EC2 instances running Ubuntu 16.04. I run the setup.sh script on one of them, and then use that "captain" instance to create k8s clusters out of the others. 
+The bottom half shows what was used for development, and you can try this out yourself. I spun up mock "data centers" in AWS. These are just EC2 instances running Ubuntu 16.04, in the same VPC. I run the setup.sh script on one of them, and then use this instance to create k8s clusters out of the others. 
 
 ## Demo:   
 
