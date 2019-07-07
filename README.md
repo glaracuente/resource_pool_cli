@@ -39,7 +39,7 @@ The bottom half shows what was used for development, and you can try this out yo
 
 Want to try it out? 
 - All you need is the __setup.sh__ file from the __user_facing__ directory. 
-- The main/__captain__ server needs to to be run have docker installed before running the setup script. 
+- The server for running the CLI needs to have docker installed before running the setup script. 
 - This entire project have only been tested on Ubuntu 16.04. 
 
 ## Project Challenges:
