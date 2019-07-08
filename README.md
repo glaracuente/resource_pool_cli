@@ -6,7 +6,7 @@ This is a cli tool written in Python for automatically creating, resizing, and d
 
 This was my DevOps fellowship project as part of the Insight Data Science Summer 2019 NYC cohort. 
 
-*I am not the original author of then files inside of the "docker" and "k8s_dashboard" directories. I merely edited them to suit the needs of this project. All other files were written by me from scratch. 
+*I am not the original author of the files inside of the "docker" and "k8s_dashboard" directories. I merely edited them to suit the needs of this project. All other files were written by me from scratch. 
 
 
 ## Why Resource Pool CLI?:
