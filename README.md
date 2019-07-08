@@ -38,12 +38,12 @@ The bottom half shows what was used for development, and you can try this out yo
 Want to try it out? 
 - All you need is the __setup.sh__ file from the __user_facing__ directory. 
 - The server for running the CLI needs to have docker installed before running the setup script. 
-- This entire project have only been tested on Ubuntu 16.04. 
+- This entire project has only been tested on Ubuntu 16.04. 
 
 
 ## Future Work:
 
-__Auto Healing__ - A scheduler needs to keep track of the desired resource counts for each pool. When a server goes down, the scheduler should notice the decrease in resources, and automatically replace the serve and notify an admin, create a ticket, etc. 
+__Auto Healing__ - A scheduler needs to keep track of the desired resource counts for each pool. When a server goes down, the scheduler should notice the decrease in resources, and automatically replace the server and notify an admin, create a ticket, etc. 
 
 __HA of Masters__ - The master of each cluster is currently a point of failure. The master should be a set of servers set up for HA.
 
